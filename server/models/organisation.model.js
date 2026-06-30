@@ -13,32 +13,27 @@ const Organisation = new Schema(
       trim: true,
     },
 
-    owner: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-
     members: [
-      {
+    {
         user: {
-          type: Schema.Types.ObjectId,
-          ref: "User",
-          required: true,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true
         },
 
         role: {
-          type: String,
-          enum: ["owner", "admin", "member"],
-          default: "member",
+            type: String,
+            enum: ["owner", "admin", "member"],
+            default: "member"
         },
 
-        joinedAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
+        permissions: [
+            {
+                type: String
+            }
+        ]
+    }
+  ]
   },
   { timestamps: true }
 );

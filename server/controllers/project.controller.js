@@ -1,44 +1,78 @@
 
+import Project from "../models/project.model.js";
+
 export const createProject = async (req, res) => {
-    res.status(201).json({
-        success: true,
-        message: "Create project endpoint"
+  try {
+    const { name, description } = req.body;
+
+    const project = await Project.create({
+      name,
+      description,
+      organisation: req.org._id,
+      createdBy: req.user._id,
     });
+
+    return res.status(201).json({
+      message: "Project created",
+      project,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: err.message,
+    });
+  }
 };
 
 export const getProjects = async (req, res) => {
-    res.status(200).json({
-        success: true,
-        message: "Get all projects endpoint"
+  try {
+    const projects = await Project.find({
+      organisation: req.org._id,
     });
+
+    return res.json({
+      projects,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: err.message,
+    });
+  }
 };
 
 export const getProjectById = async (req, res) => {
-    const { projectId } = req.params;
+    console.log("Project:", req.project);
 
-    res.status(200).json({
-        success: true,
-        message: "Get project by id endpoint",
-        projectId
+    return res.status(200).json({
+        project: req.project
     });
 };
 
 export const updateProject = async (req, res) => {
-    const { projectId } = req.params;
+  try {
+    const { name, description } = req.body;
 
-    res.status(200).json({
-        success: true,
-        message: "Update project endpoint",
-        projectId
+    if (name !== undefined) req.project.name = name;
+    if (description !== undefined) req.project.description = description;
+
+    await req.project.save();
+
+    res.json({
+      message: "Project updated successfully",
+      project: req.project,
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 export const deleteProject = async (req, res) => {
-    const { projectId } = req.params;
+  try {
+    await req.project.deleteOne();
 
-    res.status(200).json({
-        success: true,
-        message: "Delete project endpoint",
-        projectId
+    res.json({
+      message: "Project deleted successfully",
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };

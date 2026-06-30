@@ -3,7 +3,7 @@ import User from "../models/user.model.js";
 
 export const protect = async (req, res, next) => {
   let token;
-//   console.log("HEADERS:", req.headers.authorization);
+  console.log("HEADERS:", req.headers.authorization);
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
@@ -20,6 +20,7 @@ export const protect = async (req, res, next) => {
 
     const user = await User.findById(decoded.id).select("-password");
     req.user = user;
+    console.log("USER OBJECT:", user);
 
     if (!user) {
       return res.status(401).json({ message: "User not found" });
@@ -30,3 +31,5 @@ export const protect = async (req, res, next) => {
     return res.status(401).json({ message: "Token invalid" });
   }
 };
+
+// user request send karega toh teen gate honge. Pahle gate pe ye check hoga ki user logged in hai. Agar logged in hai toh verified hai ya nhi.
