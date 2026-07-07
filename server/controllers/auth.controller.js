@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import { generateToken } from "../utils/jwt.js";
 
 export const register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { username, email, password } = req.body;
 
   const existing = await User.findOne({ email });
   if (existing) {
@@ -13,7 +13,7 @@ export const register = async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const user = await User.create({
-    name,
+    username,
     email,
     password: hashedPassword,
   });
@@ -23,7 +23,7 @@ export const register = async (req, res) => {
   res.status(201).json({
     user: {
       id: user._id,
-      name: user.name,
+      username: user.username,
       email: user.email,
     },
     token,

@@ -1,5 +1,9 @@
-export const checkTaskAccess = async (req, res, next) => {
+import Task from "../models/task.model.js";
+import Project from "../models/project.model.js";
+import Organisation from "../models/organisation.model.js";
 
+
+export const checkTaskAccess = async (req, res, next) => {
     const task = await Task.findById(req.params.taskId);
 
     if (!task) {
@@ -7,6 +11,13 @@ export const checkTaskAccess = async (req, res, next) => {
     }
 
     const project = await Project.findById(task.project);
+
+    // 🔴 IMPORTANT SECURITY CHECK
+    if (project._id.toString() !== req.params.projectId) {
+        return res.status(403).json({
+            message: "Task does not belong to this project"
+        });
+    }
 
     const org = await Organisation.findById(project.organisation);
 

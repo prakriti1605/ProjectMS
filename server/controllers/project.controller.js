@@ -26,12 +26,11 @@ export const createProject = async (req, res) => {
 export const getProjects = async (req, res) => {
   try {
     const projects = await Project.find({
-      organisation: req.org._id,
-    });
+  organisation: req.org._id,
+}).populate("createdBy", "name email");
 
-    return res.json({
-      projects,
-    });
+return res.json({ projects });
+
   } catch (err) {
     return res.status(500).json({
       message: err.message,
@@ -40,11 +39,10 @@ export const getProjects = async (req, res) => {
 };
 
 export const getProjectById = async (req, res) => {
-    console.log("Project:", req.project);
+    const project = await Project.findById(req.params.projectId)
+  .populate("createdBy", "name email");
 
-    return res.status(200).json({
-        project: req.project
-    });
+return res.json({ project });
 };
 
 export const updateProject = async (req, res) => {
