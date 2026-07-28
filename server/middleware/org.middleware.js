@@ -4,7 +4,7 @@ export const checkOrganisationAccess = async (req, res, next) => {
 
     try {
 
-        const organisation = await Organisation.findById(req.params.orgId);
+        const organisation = await Organisation.findById(req.params.orgId).populate("members.user", "name email");
 
         if (!organisation) {
             return res.status(404).json({
@@ -13,8 +13,8 @@ export const checkOrganisationAccess = async (req, res, next) => {
         }
         console.log("Organisation found:", organisation._id);
 
-        const member = organisation.members.find(member =>
-            member.user.toString() === req.user._id.toString()
+        const member = organisation.members.find(
+            member =>member.user?._id.toString() ===req.user._id.toString()
         );
         console.log("Member found:", member);
 

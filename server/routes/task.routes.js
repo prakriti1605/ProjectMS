@@ -8,6 +8,7 @@ import {
   getTaskById,
   updateTask,
   deleteTask,
+  getMyTasks
 } from "../controllers/task.controller.js";
 
 import { protect } from "../middleware/auth.middleware.js";
@@ -18,6 +19,11 @@ import { PERMISSIONS } from "../config/permission.js";
 
 const router = express.Router();
 
+router.get(
+  "/my",
+  protect,
+  getMyTasks
+);
 // Create task
 router.post(
   "/:orgId/:projectId",
@@ -59,5 +65,6 @@ router.delete(
   requirePermission(PERMISSIONS.TASK_DELETE),
   deleteTask
 );
+
 
 export default router;

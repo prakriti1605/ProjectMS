@@ -19,5 +19,6 @@ export const PERMISSIONS = {
 
     // Organisation
     ORG_UPDATE: "org:update",
-    ORG_DELETE: "org:delete"
+    ORG_DELETE: "org:delete",
+    ORG_JOIN_CODE_MANAGE: "org:joinCodeManage",
 };

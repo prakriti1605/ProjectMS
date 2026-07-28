@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { orgApi } from "../api/org.api";
 import { useNavigate } from "react-router-dom";
+import OrgCard from "../components/OrgCard";
+import { useOrganisation } from "../context/OrganisationContext";
 
 export default function Organisations() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const { selectOrganisation } = useOrganisation();
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -47,35 +50,18 @@ export default function Organisations() {
         Organisations
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl">
         {orgs.map((org) => (
-          <div
+          <OrgCard
             key={org._id}
-            onClick={() => navigate(`/org/${org._id}`)}
-            className="bg-card border border-border rounded-lg p-5 cursor-pointer
-                        hover:border-primary transition"
-            >
-            {/* ORG NAME BADGE */}
-            <div className="inline-block px-3 py-1 rounded-md 
-                            bg-orange-400/20 border border-orange-400/30">
-              <h2 className="text-white font-semibold text-sm">
-                {org.name}
-              </h2>
-            </div>
-
-            {/* Members */}
-            <p className="text-sm text-muted-foreground mt-3">
-              {org.members?.length || 0} members
-            </p>
-
-            {/* Meta */}
-            <div className="mt-4 flex justify-between text-xs text-muted-foreground">
-              <span>
-                Created: {new Date(org.createdAt).toLocaleDateString()}
-              </span>
-            </div>
-          </div>
+            org={org}
+            onClick={() => {
+              selectOrganisation(org);
+              navigate(`/org/${org._id}`);
+            }}
+          />
         ))}
+                
       </div>
     </div>
   );

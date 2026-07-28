@@ -1,8 +1,10 @@
 import { NavLink } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
+import { useOrganisation } from "../../context/OrganisationContext";
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const { selectedOrganisation } = useOrganisation();
 
   const navClass = ({ isActive }) =>
     `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
@@ -36,7 +38,34 @@ export default function Sidebar() {
           Organisations
         </NavLink>
 
+        <NavLink to="/projects" className={navClass}>
+          Projects
+        </NavLink>
+        {selectedOrganisation && (
+          <NavLink
+            to="/members"
+            className={navClass}
+          >
+            Members
+          </NavLink>
+        )}
       </nav>
+
+      <div className="pt-6 mt-6 border-t border-border space-y-2">
+        <NavLink
+          to="/create-organisation"
+          className={navClass}
+        >
+          Create Organisation
+        </NavLink>
+
+        <NavLink
+          to="/join-organisation"
+          className={navClass}
+        >
+          Join Organisation
+        </NavLink>
+      </div>
 
       {/* User */}
       <div className="border-t border-border p-5">

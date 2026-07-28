@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import FormCard from "../components/FormCard";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+
 
 export default function Register() {
   const { register } = useAuth();
@@ -67,6 +68,15 @@ export default function Register() {
       >
         {loading ? "Creating..." : "Create Account"}
       </button>
+      <p className="text-center text-sm text-muted-foreground mt-4">
+        Already have an account?{" "}
+        <Link
+          to="/login"
+          className="text-primary font-medium hover:underline"
+        >
+          Login
+        </Link>
+      </p>
     </FormCard>
   );
 }

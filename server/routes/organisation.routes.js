@@ -13,6 +13,8 @@ import {
   updateMemberRole,
   updateOrganisation,
   deleteOrganisation,
+  generateJoinCode,
+  joinOrganisationByCode,
 } from "../controllers/organisation.controller.js";
 
 const router = express.Router();
@@ -74,5 +76,19 @@ router.delete(
   checkOrganisationAccess,
   requirePermission(PERMISSIONS.ORG_DELETE),
   deleteOrganisation
+);
+
+router.post(
+  "/:orgId/join-code",
+  protect,
+  checkOrganisationAccess,
+  requirePermission(PERMISSIONS.ORG_JOIN_CODE_MANAGE),
+  generateJoinCode
+);
+
+router.post(
+  "/join",
+  protect,
+  joinOrganisationByCode
 );
 export default router;

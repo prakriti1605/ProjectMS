@@ -10,7 +10,7 @@ export const requirePermission = (permission) => {
 
     if (!allowed) {
       return res.status(403).json({
-        message: "Permission denied"
+        message: "You do not have permission to perform this action."
       });
     }
     console.log("Permission granted");

@@ -12,7 +12,15 @@ const Organisation = new Schema(
       type: String,
       trim: true,
     },
+    joinCode: {
+      type: String,
+      unique: true,
+      sparse: true
+    },
 
+    joinCodeExpiresAt: {
+      type: Date
+    },
     members: [
     {
         user: {

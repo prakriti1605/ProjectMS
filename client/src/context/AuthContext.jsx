@@ -36,6 +36,10 @@ export function AuthProvider({ children }) {
 
   // LOGIN
   const login = async (credentials) => {
+    //clear old session before attempting new login. 
+    localStorage.removeItem("access_token");
+    setUser(null);
+
     const res = await api.post("/auth/login", credentials);
 
     const { token, user } = res.data;

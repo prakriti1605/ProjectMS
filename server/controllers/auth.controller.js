@@ -56,8 +56,16 @@ export const login = async (req, res) => {
   });
 };
 
-export const me = (req, res) => {
-  res.json({ message: "me controller working" });
+export const me = async (req, res) => {
+  try {
+    return res.status(200).json({
+      user: req.user,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
 };
 
 export const logout =(req,res) =>{
