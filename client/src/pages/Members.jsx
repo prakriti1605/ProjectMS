@@ -24,17 +24,13 @@ export default function Members() {
   const [joinCode, setJoinCode] = useState(
   selectedOrganisation?.joinCode || ""
   );
-
   const [joinCodeExpiresAt, setJoinCodeExpiresAt] = useState(
     selectedOrganisation?.joinCodeExpiresAt || null
   );
-
+  
   const [generatingCode, setGeneratingCode] = useState(false);
 
   const [error, setError] = useState("");
-
-
-
   //current user ki membership check karne ke liye.
 
   const currentUserMembership = useMemo(() => {
@@ -515,7 +511,7 @@ console.log(
                     justify-center
                     font-semibold
                   ">
-                    {member.user?.name
+                    {member.user?.username
                       ?.charAt(0)
                       ?.toUpperCase() || "?"}
                   </div>
@@ -525,7 +521,7 @@ console.log(
                     <div className="flex items-center gap-2">
 
                       <p className="font-medium">
-                        {member.user?.name ||
+                        {member.user?.username ||
                           "Unknown User"}
                       </p>
 

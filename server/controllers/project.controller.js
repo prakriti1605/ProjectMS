@@ -1,5 +1,6 @@
 
 import Project from "../models/project.model.js";
+import  {logActivity}  from "../utils/actvityLogger.js";
 
 export const createProject = async (req, res) => {
   try {
@@ -10,6 +11,17 @@ export const createProject = async (req, res) => {
       description,
       organisation: req.org._id,
       createdBy: req.user._id,
+    });
+
+    console.log("CONTROLLER REQ.USER.username =", req.user.username);
+console.log("CONTROLLER REQ.USER =", req.user);
+
+    await logActivity({
+      organisation: req.org._id,
+      project: project._id,
+      actor: req.user._id,
+      action: "PROJECT_CREATED",
+      message: `${req.user.username} created project "${project.name}"`,
     });
 
     return res.status(201).json({

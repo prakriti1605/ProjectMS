@@ -174,7 +174,7 @@ export default function CreateTaskModal({
               key={member.user._id}
               value={member.user._id}
             >
-              {member.user.name}
+              {member.user.username}
             </option>
           ))}
         </select>

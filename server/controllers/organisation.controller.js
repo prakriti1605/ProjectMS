@@ -50,7 +50,7 @@ export const getMyOrgs = async (req, res) => {
       
       const orgs = await Organisation.find({
       "members.user": req.user._id
-      }).populate("members.user", "name email");
+      }).populate("members.user", "username email");
 
         return res.status(200).json({
             organisations: orgs
@@ -187,7 +187,7 @@ export const getOrganisationMembers = async (req, res) => {
     const members = await Organisation.find({
         organisation: req.params.orgId
     })
-    .populate("user", "name email");
+    .populate("user", "username email");
 
     return res.json({
         members
