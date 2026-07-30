@@ -1,11 +1,12 @@
 import express from "express";
 import routes from "./routes/index.js";
 import cors from "cors";
+import donten from "./"
 
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin:process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
