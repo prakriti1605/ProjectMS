@@ -96,7 +96,7 @@ export default function ProjectHeader({
           Created by:
 
           <span className="ml-1 text-gray-200 font-medium">
-            {project.createdBy?.name || "Unknown"}
+            {project.createdBy?.username || "Unknown"}
           </span>
         </div>
 

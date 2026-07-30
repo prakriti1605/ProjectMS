@@ -21,7 +21,14 @@ export default function TaskDetails() {
         taskId
       );
 
-      setTask(response.data.task);
+      const updatedTasks = res.data.tasks || [];
+
+console.log(
+  "TASKS AFTER FETCH:",
+  updatedTasks
+);
+
+setTasks(updatedTasks);
     } catch (err) {
       setError(
         err.response?.data?.message ||
@@ -136,11 +143,8 @@ export default function TaskDetails() {
           </p>
 
           <p className="text-white mt-2">
-            {task.assignedTo
-              ? task.assignedTo.name
-              : "Unassigned"}
-          </p>
-
+            {task.assignedTo?task.assignedTo.username: "Unassigned"}</p>
+            
           {task.assignedTo?.email && (
             <p className="text-sm text-muted-foreground mt-1">
               {task.assignedTo.email}
@@ -158,7 +162,7 @@ export default function TaskDetails() {
           </p>
 
           <p className="text-white mt-2">
-            {task.createdBy?.name || "Unknown"}
+            {task.createdBy?.username || "Unknown"}
           </p>
 
           {task.createdBy?.email && (

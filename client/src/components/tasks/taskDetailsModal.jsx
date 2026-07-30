@@ -122,12 +122,12 @@ export default function TaskDetailsModal({
 
             <InfoRow
               label="Assigned To"
-              value={task.assignedTo?.name || "Unassigned"}
+              value={task.assignedTo?.username || "Unassigned"}
             />
 
             <InfoRow
               label="Created By"
-              value={task.createdBy?.name}
+              value={task.createdBy?.username}
             />
 
             <InfoRow

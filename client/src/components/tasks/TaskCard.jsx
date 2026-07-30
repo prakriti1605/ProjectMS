@@ -107,7 +107,7 @@ export default function TaskCard({ task, onSelect }) {
       <div className="mt-5 pt-4 border-t border-gray-800 flex justify-between items-center">
 
           <div className="text-sm text-gray-300">
-              👤 {task.assignedTo?.name || "Unassigned"}
+              👤 {task.assignedTo?.username || "Unassigned"}
           </div>
 
           <div className="text-sm text-gray-400">

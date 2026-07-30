@@ -7,7 +7,7 @@ import projectRoutes from "./project.routes.js";
 import taskRoutes from "./task.routes.js";
 import organisationRoutes from "./organisation.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
-
+import activityRoutes from "./activity.routes.js";
 
 
 const router = express.Router();
@@ -18,6 +18,7 @@ router.use("/projects", projectRoutes);
 router.use("/tasks", taskRoutes);
 router.use("/org", organisationRoutes);
 router.use("/dashboard",dashboardRoutes);
+router.use("/activity", activityRoutes);
 
 
 export default router;

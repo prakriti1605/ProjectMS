@@ -43,7 +43,7 @@ export default function OrgCard({ org, onClick }) {
 
         <p className="text-sm text-white">
           👤 Owner:{" "}
-          {owner?.user?.name ||
+          {owner?.user?.username ||
            owner?.user?.email ||
            "Unknown"}
         </p>

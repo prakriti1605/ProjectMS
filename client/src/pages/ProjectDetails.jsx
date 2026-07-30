@@ -19,25 +19,19 @@ export default function ProjectDetails() {
 const { orgId, projectId } = useParams();
 const navigate = useNavigate();
 
-// =========================
 // Project State
-// =========================
 
 const [project, setProject] = useState(null);
 const [loading, setLoading] = useState(true);
 const [error, setError] = useState("");
 
-// =========================
 // Task State
-// =========================
 
 const [tasks, setTasks] = useState([]);
 const [selectedTask, setSelectedTask] =
 useState(null);
 
-// =========================
 // Modal State
-// =========================
 
 const [showTaskDetails, setShowTaskDetails] =
 useState(false);
@@ -51,16 +45,10 @@ useState(false);
 const [showSettings, setShowSettings] =
 useState(false);
 
-// =========================
 // Members
-// =========================
-
 const [members, setMembers] = useState([]);
 
-// =========================
 // Fetch Project
-// =========================
-
 const fetchProject = async () => {
 try {
 setLoading(true);
@@ -84,52 +72,43 @@ setLoading(true);
 
 };
 
-// =========================
 // Fetch Tasks
-// =========================
-
 const fetchTasks = async () => {
-try {
-const res =
-await taskApi.getByProject(
-orgId,
-projectId
-);
+  try {
+    const res = await taskApi.getByProject(
+      orgId,
+      projectId
+    );
 
-  setTasks(res.data.tasks || []);
-} catch (err) {
-  console.error(
-    "Failed to load tasks:",
-    err
-  );
-}
-
+    setTasks(res.data.tasks || []);
+  } catch (err) {
+    console.error(
+      "Failed to load tasks:",
+      err
+    );
+  }
 };
 
-// =========================
 // Fetch Members
-// =========================
-
 const fetchMembers = async () => {
-try {
-const res =
-await orgApi.getById(orgId);
+  try {
+    const res = await orgApi.getById(orgId);
 
-  setMembers(
-    res.data.members || []
-  );
-} catch (err) {
-  console.error(
-    "Failed to load members:",
-    err
-  );
-}
+    console.log("FULL ORG RESPONSE:", res.data);
 
+    setMembers(
+      res.data.members || []
+    );
+
+  } catch (err) {
+    console.error(
+      "Failed to load members:",
+      err
+    );
+  }
 };
 
-// =========================
 // Initial Data Fetch
-// =========================
 
 useEffect(() => {
 fetchProject();
@@ -137,9 +116,7 @@ fetchTasks();
 fetchMembers();
 }, [orgId, projectId]);
 
-// =========================
 // Task Handlers
-// =========================
 
 const handleSelectTask = (task) => {
 setSelectedTask(task);
@@ -187,25 +164,24 @@ setShowEditModal(true);
 };
 
 const handleUpdateTask = async (data) => {
-try {
-await taskApi.update(
-orgId,
-projectId,
-selectedTask._id,
-data
-);
+  try {
+    await taskApi.update(
+      orgId,
+      projectId,
+      selectedTask._id,
+      data
+    );
 
-  setShowEditModal(false);
-  setShowTaskDetails(false);
+    setShowEditModal(false);
+    setShowTaskDetails(false);
 
-  await fetchTasks();
-} catch (err) {
-  console.error(
-    "Failed to update task:",
-    err
-  );
-}
-
+    await fetchTasks();
+  } catch (err) {
+    console.error(
+      "Failed to update task:",
+      err
+    );
+  }
 };
 
 const handleDeleteTask = async (task) => {
@@ -251,35 +227,21 @@ try {
 
 };
 
-// =========================
 // Project Settings Handlers
-// =========================
 
-const handleUpdateProject = async (
-data
-) => {
+const handleUpdateProject = async (data) => {
 try {
-const res =
-await projectApi.update(
-orgId,
-projectId,
-data
-);
-
-  setProject(
-    res.data.project
-  );
-
-  setShowSettings(false);
-} catch (err) {
-  console.error(
-    "Failed to update project:",
-    err
-  );
-
-  throw err;
-}
-
+    const res =await projectApi.update(orgId,projectId,data);
+      setProject(
+        res.data.project);
+      setShowSettings(false);
+    } catch (err) {
+      console.error(
+        "Failed to update project:",
+        err
+      );
+      throw err;
+    }
 };
 
 const handleDeleteProject = async () => {
@@ -301,9 +263,7 @@ projectId
 
 };
 
-// =========================
 // Loading State
-// =========================
 
 if (loading) {
 return (
@@ -313,9 +273,7 @@ Loading project...
 );
 }
 
-// =========================
 // Error State
-// =========================
 
 if (error) {
 return (
@@ -325,9 +283,7 @@ return (
 );
 }
 
-// =========================
 // Page
-// =========================
 
 return (
 <div className="p-6">

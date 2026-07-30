@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 
 export default function CreateTaskModal({
   open,
@@ -14,7 +14,19 @@ export default function CreateTaskModal({
     assignedTo: "",
     dueDate: "",
   });
-
+  useEffect(() => {
+  if (open) {
+    setForm({
+      title: "",
+      description: "",
+      priority: "medium",
+      status: "todo",
+      assignedTo: "",
+      dueDate: "",
+    });
+    setError("");
+  }
+}, [open]);
   const [error, setError] = useState("");
 
   const handleChange = (e) => {

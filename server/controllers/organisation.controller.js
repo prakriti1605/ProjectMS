@@ -3,6 +3,7 @@ import {DEFAULT_PERMISSIONS} from "../config/rolePermission.js";
 import mongoose from "mongoose";
 import User from "../models/user.model.js";
 import crypto from "crypto";
+import { logActivity } from "../utils/actvityLogger.js";
 
 export const createOrg = async (req, res) => {
   try{
@@ -123,9 +124,17 @@ export const removeMember = async (req, res) => {
       });
     }
 
-    member.deleteOne();
+    const removedUser = member.user;
 
+    const removedUsername = member.user.username || "Unknown user";
+    member.deleteOne();
     await req.org.save();
+    await logActivity({
+      organisation: req.org._id,
+      actor: req.user._id,
+      action: "MEMBER_REMOVED",
+      message: `${req.user.username} removed ${removedUsername} from organisation "${req.org.name}"`,
+    });
 
     return res.status(200).json({
       message: "Member removed successfully",
@@ -153,6 +162,12 @@ export const updateOrganisation = async (req, res) => {
     }
 
     await req.org.save();
+    await logActivity({
+    organisation: req.org._id,
+    actor: req.user._id,
+    action: "ORG_UPDATED",
+    message: `${req.user.username} updated organisation "${req.org.name}"`,
+  });
 
     return res.json({
       message: "Organisation updated successfully",
@@ -168,7 +183,15 @@ export const updateOrganisation = async (req, res) => {
 
 export const deleteOrganisation = async (req, res) => {
   try {
-    // req.org is already loaded by middleware
+    const organisationName = req.org.name;
+
+    await logActivity({
+      organisation: req.org._id,
+      actor: req.user._id,
+      action: "ORG_DELETED",
+      message: `${req.user.username} deleted organisation "${organisationName}"`,
+    });
+
     await req.org.deleteOne();
 
     return res.json({
@@ -240,6 +263,13 @@ export const updateMemberRole = async (req, res) => {
     // 6. Save organisation
     await req.org.save();
 
+    await logActivity({
+    organisation: req.org._id,
+    actor: req.user._id,
+    action: "MEMBER_ROLE_CHANGED",
+    message: `${req.user.username} changed ${member.user.username}'s role to "${role}"`,
+  });
+
     return res.status(200).json({
       message: "Role updated successfully",
       member,
@@ -272,6 +302,13 @@ export const generateJoinCode = async (req, res) => {
     req.org.joinCodeExpiresAt = expiresAt;
 
     await req.org.save();
+
+    await logActivity({
+    organisation: req.org._id,
+    actor: req.user._id,
+    action: "JOIN_CODE_GENERATED",
+    message: `${req.user.username} generated a new join code for organisation "${req.org.name}"`,
+  });
 
     return res.status(200).json({
       message: "Join code generated successfully",
@@ -335,6 +372,13 @@ export const joinOrganisationByCode = async (req, res) => {
     });
 
     await organisation.save();
+
+    await logActivity({
+    organisation: organisation._id,
+    actor: req.user._id,
+    action: "MEMBER_JOINED",
+    message: `${req.user.username} joined organisation "${organisation.name}"`,
+  });
 
     return res.status(200).json({
       message: "Successfully joined organisation",

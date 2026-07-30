@@ -10,6 +10,7 @@ export default function Members() {
     selectedOrganisation,
     organisations,
     selectOrganisation,
+    refreshOrganisations,
   } = useOrganisation();
 
   const { user } = useAuth();
@@ -38,40 +39,16 @@ export default function Members() {
 
     return selectedOrganisation.members?.find(
       (member) =>
-        member.user?._id === user._id
+        member.user?._id?.toString() === (user._id || user.id)?.toString()
     );
   }, [selectedOrganisation, user]);
 
-  console.log("CURRENT USER:", user);
+  useEffect(() => {
+  console.log("Selected Org:", selectedOrganisation?.name);
+  console.log("Current Membership:", currentUserMembership);
+}, [selectedOrganisation, currentUserMembership]);
 
-console.log(
-  "SELECTED ORGANISATION:",
-  selectedOrganisation
-);
-
-console.log(
-  "MEMBERS:",
-  selectedOrganisation?.members
-);
-
-console.log(
-  "CURRENT USER MEMBERSHIP:",
-  currentUserMembership
-);
-
-console.log(
-  "CAN MANAGE:",
-  currentUserMembership?.permissions?.includes(
-    "member:updatePermissions"
-  )
-);
-
-console.log(
-  "CAN REMOVE:",
-  currentUserMembership?.permissions?.includes(
-    "member:remove"
-  )
-);
+console.log("CURRENT USER:", user);
 
   //filtered members will be shown through this function
   const filteredMembers = useMemo(() => {
@@ -158,21 +135,7 @@ console.log(
 
       const updatedMember = response.data.member;
 
-      const updatedOrganisation = {
-        ...selectedOrganisation,
-        members: selectedOrganisation.members.map((item) =>
-          item.user._id === member.user._id
-            ? {
-                ...item,
-                role: updatedMember.role,
-                permissions: updatedMember.permissions,
-              }
-            : item
-        ),
-      };
-
-      selectOrganisation(updatedOrganisation);
-
+      await refreshOrganisations();
       setOpenMenu(null);
 
     } catch (err) {
@@ -201,16 +164,7 @@ console.log(
         member.user._id
       );
 
-      const updatedOrganisation = {
-        ...selectedOrganisation,
-        members: selectedOrganisation.members.filter(
-          (item) =>
-            item.user._id !== member.user._id
-        ),
-      };
-
-      selectOrganisation(updatedOrganisation);
-
+      await refreshOrganisations();
       setOpenMenu(null);
 
     } catch (err) {
