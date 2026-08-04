@@ -53,11 +53,12 @@ export default function AppRoutes() {
               element={<CreateOrganisation />}
             />
             <Route path="/projects/:orgId/:projectId" element={<ProjectDetails />} />
-         </Route>
+          </Route>
         </Route>
 
-        {/* default */}
-        <Route path="/" element={<Navigate to="/dashboard" />} />
+        {/* Default: Redirect root path "/" to register */}
+        <Route path="/" element={<Navigate to="/register" replace />} />
+        
       </Routes>
     </BrowserRouter>
   );

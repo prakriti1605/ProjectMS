@@ -3,7 +3,7 @@ import {
 useParams,
 useNavigate,
 } from "react-router-dom";
-
+import { useAuth } from "../context/AuthContext";
 import ProjectHeader from "../components/project/ProjectHeader";
 import TaskList from "../components/tasks/TaskList";
 import TaskDetailsModal from "../components/tasks/taskDetailsModal";
@@ -18,6 +18,7 @@ import { taskApi } from "../api/task.api";
 export default function ProjectDetails() {
 const { orgId, projectId } = useParams();
 const navigate = useNavigate();
+const { user } = useAuth();
 
 // Project State
 
@@ -47,7 +48,9 @@ useState(false);
 
 // Members
 const [members, setMembers] = useState([]);
-
+const currMember = members.find(
+  (member) => member.user?._id === user?._id
+);
 // Fetch Project
 const fetchProject = async () => {
 try {
@@ -345,6 +348,8 @@ return (
     open={showEditModal}
     task={selectedTask}
     members={members}
+    currMember={currMember}
+    currentUser={user}
     onClose={() =>
       setShowEditModal(false)
     }

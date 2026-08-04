@@ -8,13 +8,14 @@ import {
   getTaskById,
   updateTask,
   deleteTask,
-  getMyTasks
+  getMyTasks,
+  updateTaskStatus
 } from "../controllers/task.controller.js";
-
+import {checkOrganisationAccess} from "../middleware/org.middleware.js"
 import { protect } from "../middleware/auth.middleware.js";
 import { checkProjectAccess } from "../middleware/project.middleware.js";
-import { checkTaskAccess } from "../middleware/task.middleware.js";
-import { requirePermission } from "../middleware/permission.middleware.js";
+import { checkTaskAccess,checkTaskStatusAccess } from "../middleware/task.middleware.js";
+import { requirePermission,authorizeTaskUpdate } from "../middleware/permission.middleware.js";
 import { PERMISSIONS } from "../config/permission.js";
 
 const router = express.Router();
@@ -53,8 +54,16 @@ router.patch(
   "/:orgId/:projectId/:taskId",
   protect,
   checkTaskAccess,
-  requirePermission(PERMISSIONS.TASK_UPDATE),
+  authorizeTaskUpdate,
   updateTask
+);
+
+router.patch(
+  "/:taskId/status",
+  protect,
+  checkTaskStatusAccess,
+  authorizeTaskUpdate,
+  updateTaskStatus
 );
 
 // Delete task

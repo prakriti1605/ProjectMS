@@ -9,7 +9,14 @@ export const PERMISSIONS = {
 
     // Task
     TASK_CREATE: "task:create",
-    TASK_UPDATE: "task:update",
+
+    // TASK_UPDATE: "task:update", // temporary during migration
+
+    TASK_UPDATE_DETAILS: "task:updateDetails",
+    TASK_UPDATE_STATUS: "task:updateStatus",
+    TASK_UPDATE_ASSIGNEE: "task:updateAssignee",
+    TASK_UPDATE_DUE_DATE: "task:updateDueDate",
+
     TASK_DELETE: "task:delete",
 
     // Member

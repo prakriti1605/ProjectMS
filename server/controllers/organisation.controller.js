@@ -391,3 +391,47 @@ export const joinOrganisationByCode = async (req, res) => {
     });
   }
 };
+
+export const updateMemberPermissions = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { permissions } = req.body; // Array of permission strings, e.g. ["PROJECT_CREATE", "TASK_CREATE"]
+
+    if (!Array.isArray(permissions)) {
+      return res.status(400).json({ message: "Permissions must be an array" });
+    }
+
+    // Find member
+    const member = req.org.members.find(
+      (m) => m.user?._id?.toString() === userId || m.user?.toString() === userId
+    );
+
+    if (!member) {
+      return res.status(404).json({ message: "Member not found" });
+    }
+
+    // Protect Owner permissions from being downgraded
+    if (member.role === "owner") {
+      return res.status(400).json({ message: "Owner permissions cannot be altered" });
+    }
+
+    // Update permissions array
+    member.permissions = permissions;
+
+    await req.org.save();
+
+    await logActivity({
+      organisation: req.org._id,
+      actor: req.user._id,
+      action: "MEMBER_PERMISSIONS_UPDATED",
+      message: `${req.user.username} updated permissions for ${member.user.username || "member"}`,
+    });
+
+    return res.status(200).json({
+      message: "Member permissions updated successfully",
+      member,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};

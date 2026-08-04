@@ -18,6 +18,8 @@ export const taskApi = {
       `/tasks/${orgId}/${projectId}/${taskId}`,
       data
     ),
+  updateStatus: (taskId, data) =>
+  api.patch(`/tasks/${taskId}/status`, data),
 
   delete: (orgId, projectId, taskId) =>
     api.delete(

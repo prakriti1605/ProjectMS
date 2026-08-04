@@ -15,6 +15,7 @@ import {
   deleteOrganisation,
   generateJoinCode,
   joinOrganisationByCode,
+  updateMemberPermissions
 } from "../controllers/organisation.controller.js";
 
 const router = express.Router();
@@ -54,13 +55,6 @@ router.patch(
   updateMemberRole
 );
 
-// router.patch(
-//   "/:orgId/members/:userId/permissions",
-//   protect,
-//   checkOrganisationAccess,
-//   requirePermission(PERMISSIONS.MEMBER_UPDATE_PERMISSIONS),
-//   updateMemberPermissions
-// );
 
 router.patch(
   "/:orgId",
