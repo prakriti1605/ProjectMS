@@ -1,136 +1,101 @@
-import { createContext, useContext, useEffect, useState } from "react";
+// src/context/OrganisationContext.jsx
+import { createContext, useContext, useState, useEffect } from "react";
 import { orgApi } from "../api/org.api";
 import { useAuth } from "./AuthContext";
 
 const OrganisationContext = createContext();
 
 export const OrganisationProvider = ({ children }) => {
-  const { user, loading: authLoading } = useAuth();
-
   const [organisations, setOrganisations] = useState([]);
   const [selectedOrganisation, setSelectedOrganisation] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (authLoading) return;
+  // Auth Context se authLoading aur user dono destructure karein
+  const { user, loading: authLoading, setActiveMembership } = useAuth();
 
-    if (!user) {
-      setOrganisations([]);
-      setSelectedOrganisation(null);
-      setLoading(false);
-      return;
+  const refreshOrganisations = async () => {
+    const token = localStorage.getItem("token");
+    if (!token || !user) return [];
+
+    try {
+      const res = await orgApi.getAll();
+      const orgList = res.data.organisations || [];
+      setOrganisations(orgList);
+      return orgList;
+    } catch (err) {
+      console.error("Failed to load organisations:", err);
+      return [];
     }
+  };
 
-    const fetchOrganisations = async () => {
-      try {
+  const selectOrganisation = async (org) => {
+    if (!org?._id) return;
+    setSelectedOrganisation(org);
+
+    try {
+      // Single Org Details & Member status load karke Auth Context sync karein
+      const response = await orgApi.getById(org._id);
+      if (response.data.member) {
+        setActiveMembership(response.data.member);
+      }
+    } catch (err) {
+      console.error("Failed to set active membership:", err);
+    }
+  };
+
+  useEffect(() => {
+    const initOrgs = async () => {
+      // 1. Agar Auth hi load ho raha hai, toh hold karein
+      if (authLoading) return;
+
+      const token = localStorage.getItem("token");
+      if (token && user) {
         setLoading(true);
-
-        const response = await orgApi.getAll();
-
-        const orgs =
-          response.data.organisations ||
-          response.data;
-
-        setOrganisations(orgs);
-
-        const savedOrgId =
-          localStorage.getItem("selected_org_id");
-
-        if (savedOrgId) {
-          const savedOrg = orgs.find(
-            (org) => org._id === savedOrgId
-          );
-
-          if (savedOrg) {
-            setSelectedOrganisation(savedOrg);
-          }
+        const orgs = await refreshOrganisations();
+        
+        // 2. Clear previous or set default organisation
+        if (orgs.length > 0) {
+          // Check if previously selected org exists in current list
+          const savedOrgId = localStorage.getItem("selectedOrgId");
+          const found = orgs.find((o) => o._id === savedOrgId) || orgs[0];
+          
+          await selectOrganisation(found);
+          localStorage.setItem("selectedOrgId", found._id);
+        } else {
+          setSelectedOrganisation(null);
         }
-
-      } catch (error) {
-        console.error(
-          "Failed to fetch organisations:",
-          error
-        );
-      } finally {
+        setLoading(false);
+      } else {
+        setOrganisations([]);
+        setSelectedOrganisation(null);
         setLoading(false);
       }
     };
 
-    fetchOrganisations();
+    initOrgs();
+  }, [authLoading, user]); // Auth load complete hone par hi run hoga
 
-  }, [user, authLoading]);
-
-  const selectOrganisation = (organisation) => {
-  const latestOrganisation =
-    organisations.find(
-      (org) => org._id === organisation._id
-    );
-
-  setSelectedOrganisation(
-    latestOrganisation || organisation
-  );
-
-  localStorage.setItem(
-    "selected_org_id",
-    organisation._id
-  );
-};
-
-  const clearOrganisation = () => {
-    setSelectedOrganisation(null);
-    localStorage.removeItem("selected_org_id");
-  };
-  const refreshOrganisations = async () => {
-  try {
-    const response = await orgApi.getAll();
-
-    const orgs =
-      response.data.organisations ||
-      response.data;
-
-    setOrganisations(orgs);
-
-    const selectedOrgId =
-      localStorage.getItem("selected_org_id");
-
-    if (selectedOrgId) {
-      const updatedSelectedOrg =
-        orgs.find(
-          (org) => org._id === selectedOrgId
-        );
-
-      if (updatedSelectedOrg) {
-        setSelectedOrganisation(
-          updatedSelectedOrg
-        );
-      }
+  // Select switch wrapper to persist in localStorage
+  const handleSelectOrganisation = async (org) => {
+    if (org?._id) {
+      localStorage.setItem("selectedOrgId", org._id);
+      await selectOrganisation(org);
     }
-
-    return orgs;
-
-  } catch (error) {
-    console.error(
-      "Failed to refresh organisations:",
-      error
-    );
-  }
-};
+  };
 
   return (
     <OrganisationContext.Provider
       value={{
         organisations,
         selectedOrganisation,
-        selectOrganisation,
-        clearOrganisation,
+        selectOrganisation: handleSelectOrganisation,
         refreshOrganisations,
-        loading
-      }}>
+        loading: loading || authLoading, // Express Global Context Loading state
+      }}
+    >
       {children}
     </OrganisationContext.Provider>
   );
 };
 
-export const useOrganisation = () => {
-  return useContext(OrganisationContext);
-};
+export const useOrganisation = () => useContext(OrganisationContext);

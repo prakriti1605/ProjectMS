@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { orgApi } from "../api/org.api";
 import { useOrganisation } from "../context/OrganisationContext";
+import { useAuth } from "../context/AuthContext"; // 1. Import useAuth
 
 export default function CreateOrganisation() {
   const [name, setName] = useState("");
@@ -9,6 +10,7 @@ export default function CreateOrganisation() {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
+  const { setActiveMembership } = useAuth(); // 2. Get setActiveMembership
 
   const {
     refreshOrganisations,
@@ -30,10 +32,16 @@ export default function CreateOrganisation() {
       const response = await orgApi.create(name.trim());
 
       const newOrganisation = response.data.org;
+      const newMember = response.data.member;
+
+      // 3. Immediately set current user's membership context as Owner
+      if (newMember) {
+        setActiveMembership(newMember);
+      }
 
       const organisations = await refreshOrganisations();
 
-      const createdOrganisation = organisations.find(
+      const createdOrganisation = organisations?.find(
         (org) => org._id === newOrganisation._id
       );
 
@@ -41,7 +49,8 @@ export default function CreateOrganisation() {
         selectOrganisation(createdOrganisation);
       }
 
-      navigate("/projects");
+      // 4. Redirect to the newly created organisation details page
+      navigate(`/org/${newOrganisation._id}`);
 
     } catch (error) {
       setError(
@@ -55,7 +64,6 @@ export default function CreateOrganisation() {
 
   return (
     <div className="max-w-xl">
-
       <h1 className="text-2xl font-bold mb-2">
         Create Organisation
       </h1>
@@ -68,7 +76,6 @@ export default function CreateOrganisation() {
         onSubmit={handleSubmit}
         className="bg-card border border-border rounded-xl p-6 space-y-5"
       >
-
         <div>
           <label className="block text-sm font-medium mb-2">
             Organisation Name
@@ -96,9 +103,7 @@ export default function CreateOrganisation() {
         >
           {loading ? "Creating..." : "Create Organisation"}
         </button>
-
       </form>
-
     </div>
   );
 }

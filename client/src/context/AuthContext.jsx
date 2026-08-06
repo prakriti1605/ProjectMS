@@ -1,99 +1,86 @@
-import { createContext, useContext, useEffect, useState } from "react";
+// src/context/AuthContext.jsx
+import { createContext, useContext, useState, useEffect } from "react";
 import api from "../api/axios";
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // 1. Track context loading state
+  const [activeMembership, setActiveMembership] = useState(null);
 
-  // LOAD USER ON APP START (refresh handling)
-  const loadUser = async () => {
-    const token = localStorage.getItem("access_token");
-
-    if (!token) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const res = await api.get("/auth/me");
-
-      const userData = res.data.user || res.data;
-      setUser(userData);
-    } catch (err) {
-      localStorage.removeItem("access_token");
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Initialize user session on initial app load
   useEffect(() => {
-    loadUser();
+    const savedUser = localStorage.getItem("user");
+    const token = localStorage.getItem("token");
+
+    if (savedUser && token) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (err) {
+        console.error("Failed to parse stored user", err);
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
+    }
+    setLoading(false); // 2. Done checking localStorage
   }, []);
 
-  // LOGIN
-  const login = async (credentials) => {
-    //clear old session before attempting new login. 
-    localStorage.removeItem("access_token");
+  const login = async (formData) => {
+    const response = await api.post("/auth/login", formData);
+    const { user: userData, token } = response.data;
+
+    if (token) localStorage.setItem("token", token);
+    if (userData) {
+      localStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
+    }
+    return response.data;
+  };
+  const register = async (formData) => {
+  const response = await api.post("/auth/register", formData);
+  const { user: userData, token } = response.data;
+
+  if (token) localStorage.setItem("token", token);
+  if (userData) {
+    localStorage.setItem("user", JSON.stringify(userData));
+    setUser(userData);
+  }
+  return response.data;
+};
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("activeMembership");
     setUser(null);
-
-    const res = await api.post("/auth/login", credentials);
-
-    const { token, user } = res.data;
-
-    localStorage.setItem("access_token", token);
-    setUser(user);
-
-    return res.data;
+    setActiveMembership(null);
   };
 
-  // REGISTER
-  const register = async (data) => {
-    const res = await api.post("/auth/register", data);
-
-    const { token, user } = res.data;
-
-    if (token) {
-      localStorage.setItem("access_token", token);
-      setUser(user);
-    }
-
-    return res.data;
-  };
-
-  // LOGOUT
-  const logout = async () => {
-    try {
-      await api.post("/auth/logout");
-    } catch (err) {
-      // ignore backend errors
-    } finally {
-      localStorage.removeItem("access_token");
-      setUser(null);
-    }
+  const hasPermission = (permissionKey) => {
+    if (!activeMembership) return false;
+    if (activeMembership.role === "owner") return true;
+    return activeMembership.permissions?.includes(permissionKey) || false;
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        loading,
+        setUser,
         login,
         register,
         logout,
-        loadUser,
+        loading, // Expose loading state
+        activeMembership,
+        setActiveMembership,
+        hasPermission,
       }}
     >
-      {children}
+      {/* 3. Don't render routes until session state is verified */}
+      {!loading && children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
-  return ctx;
-}
+export const useAuth = () => useContext(AuthContext);

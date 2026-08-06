@@ -1,55 +1,74 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose from "mongoose";
 
-const taskSchema = new Schema(
+const commentSchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    description: {
-      type: String,
-      trim: true,
-    },
-
-    project: {
-      type: Schema.Types.ObjectId,
-      ref: "Project",
-      required: true,
-    },
-
-    assignedTo: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-    },
-
-    createdBy: {
-      type: Schema.Types.ObjectId,
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-
-    status: {
+    text: {
       type: String,
-      enum: ["todo", "in-progress", "done"],
-      default: "todo",
-    },
-
-    priority: {
-      type: String,
-      enum: ["low", "medium", "high"],
-      default: "medium",
-    },
-
-    dueDate: {
-      type: Date,
+      required: true,
+      trim: true,
     },
   },
   { timestamps: true }
 );
-// taskSchema.index({ project: 1 });
-// taskSchema.index({ assignedTo: 1 });
-// taskSchema.index({ status: 1 });
+
+const taskSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: [true, "Task title is required"],
+      trim: true,
+    },
+    description: {
+      type: String,
+      default: "",
+    },
+    status: {
+      type: String,
+      enum: ["todo", "in_progress", "review", "done"],
+      default: "todo",
+    },
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high","Low","High","Medium"],
+      default: "medium",
+    },
+    phase: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
+    project: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      required: true,
+    },
+    organisation: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organisation",
+      required: true,
+    },
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    dueDate: {
+      type: Date,
+      default: null,
+    },
+    // 🟢 ADDED: Comments Array Support
+    comments: [commentSchema],
+  },
+  { timestamps: true }
+);
 
 export default mongoose.model("Task", taskSchema);

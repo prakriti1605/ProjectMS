@@ -5,73 +5,43 @@ import { logActivity } from "../utils/actvityLogger.js";
 
 export const createTask = async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      priority,
-      status,
-      assignedTo,
-      dueDate,
-    } = req.body;
+    const { title, description, priority, status, phase, assignedTo, dueDate } = req.body;
 
-    // Validate assigned user ID
-    if (
-      assignedTo &&
-      !mongoose.Types.ObjectId.isValid(assignedTo)
-    ) {
-      return res.status(400).json({
-        message: "Invalid user id",
-      });
+    if (!title || !title.trim()) {
+      return res.status(400).json({ message: "Task title is required" });
     }
 
-    // Check whether assigned user belongs to organisation
-    if (assignedTo) {
-      const isMember = req.org.members.some(
-        (member) =>
-          member.user.toString() === assignedTo.toString()
-      );
+    // Direct check: agar phase empty string "" hai ya invalid, to null rakho
+    const resolvedPhase = phase && phase !== "" ? phase : null;
+    const resolvedAssignee = assignedTo && assignedTo !== "" ? assignedTo : null;
 
-      if (!isMember) {
-        return res.status(400).json({
-          message:
-            "User is not a member of this organisation",
-        });
-      }
-    }
-
-    // Create task
-    const task = await Task.create({
-      title,
-      description,
-      priority,
-      status,
-      assignedTo: assignedTo || undefined,
-      dueDate: dueDate || undefined,
-      project: req.project._id,
+    const newTask = await Task.create({
+      title: title.trim(),
+      description: description ? description.trim() : "",
+      priority: priority ? priority.toLowerCase() : "medium",
+      status: status ? status.toLowerCase() : "todo",
+      phase: resolvedPhase,
+      project: req.params.projectId,
+      organisation: req.org._id,
+      assignedTo: resolvedAssignee,
       createdBy: req.user._id,
+      dueDate: dueDate || null,
     });
 
-    await logActivity({
-    organisation: req.org._id,
-    project: req.project._id,
-    actor: req.user._id,
-    action: "TASK_CREATED",
-    message: `${req.user.username} created task "${task.title}"`,
-  });
-  
+    const populatedTask = await Task.findById(newTask._id)
+      .populate("assignedTo", "username email")
+      .populate("createdBy", "username email");
+
     return res.status(201).json({
-      message: "Task created",
-      task,
+      message: "Task created successfully",
+      task: populatedTask,
     });
-  
-
-
-  } catch (err) {
-    return res.status(500).json({
-      message: err.message,
-    });
+  } catch (error) {
+    console.error("CREATE TASK ERROR:", error);
+    return res.status(500).json({ message: error.message });
   }
 };
+
 export const getTasksByProject = async (req, res) => {
   try {
     const { status, priority, assignedTo } = req.query;
@@ -123,24 +93,16 @@ return res.json({ task });
 export const updateTask = async (req, res) => {
   try {
     const { task } = req;
+    const { title, description, status, priority, assignedTo, dueDate } = req.body;
 
-    // Completed tasks are completely immutable.
-    if (task.status === "done") {
+    // 1. Allow status updates so tasks can be reopened from "done"
+    if (task.status === "done" && (status === undefined || status === "done")) {
       return res.status(403).json({
-        message: "Completed tasks cannot be updated.",
+        message: "Completed tasks are locked. Change status to reopen before editing details.",
       });
     }
 
-    const {
-      title,
-      description,
-      status,
-      priority,
-      assignedTo,
-      dueDate,
-    } = req.body;
-
-    // Keep the original values for activity logging.
+    // Keep original values for audit logging
     const oldTask = {
       title: task.title,
       description: task.description,
@@ -150,90 +112,58 @@ export const updateTask = async (req, res) => {
       dueDate: task.dueDate,
     };
 
-    // --------------------------------------------------
-    // 1. Validate title
-    // --------------------------------------------------
+    // Update Title
     if (title !== undefined) {
       if (typeof title !== "string" || !title.trim()) {
-        return res.status(400).json({
-          message: "Title cannot be empty.",
-        });
+        return res.status(400).json({ message: "Title cannot be empty." });
       }
-
       task.title = title.trim();
     }
 
-    // --------------------------------------------------
-    // 2. Description
-    // --------------------------------------------------
+    // Update Description
     if (description !== undefined) {
       task.description = description;
     }
 
-    // --------------------------------------------------
-    // 3. Validate status using the schema enum
-    // --------------------------------------------------
+    // Update Status
     if (status !== undefined) {
-      const statusEnum =
-        task.schema.path("status")?.enumValues || [];
-
-      if (
-        statusEnum.length > 0 &&
-        !statusEnum.includes(status)
-      ) {
+      const statusEnum = task.schema.path("status")?.enumValues || [];
+      if (statusEnum.length > 0 && !statusEnum.includes(status)) {
         return res.status(400).json({
           message: `Invalid status. Allowed values: ${statusEnum.join(", ")}`,
         });
       }
-
       task.status = status;
     }
 
-    // --------------------------------------------------
-    // 4. Validate priority using the schema enum
-    // --------------------------------------------------
+    // Update Priority
     if (priority !== undefined) {
-      const priorityEnum =
-        task.schema.path("priority")?.enumValues || [];
-
-      if (
-        priorityEnum.length > 0 &&
-        !priorityEnum.includes(priority)
-      ) {
+      const priorityEnum = task.schema.path("priority")?.enumValues || [];
+      if (priorityEnum.length > 0 && !priorityEnum.includes(priority)) {
         return res.status(400).json({
           message: `Invalid priority. Allowed values: ${priorityEnum.join(", ")}`,
         });
       }
-
       task.priority = priority;
     }
 
-    // --------------------------------------------------
-    // 5. Assigned user
-    //    null / "" means unassign
-    // --------------------------------------------------
+    // Update Assignee (Updated to check normalized OrganisationMember table)
     if (assignedTo !== undefined) {
-      if (
-        assignedTo === null ||
-        assignedTo === ""
-      ) {
+      if (assignedTo === null || assignedTo === "") {
         task.assignedTo = undefined;
       } else {
         if (!mongoose.Types.ObjectId.isValid(assignedTo)) {
-          return res.status(400).json({
-            message: "Invalid user id",
-          });
+          return res.status(400).json({ message: "Invalid user ID" });
         }
 
-        const isMember = req.org.members.some(
-          (m) =>
-            m.user?.toString() === assignedTo.toString()
-        );
+        const isMember = await OrganisationMember.exists({
+          organisation: req.org._id,
+          user: assignedTo,
+        });
 
         if (!isMember) {
           return res.status(400).json({
-            message:
-              "User is not a member of this organisation",
+            message: "User is not a member of this organisation",
           });
         }
 
@@ -241,86 +171,48 @@ export const updateTask = async (req, res) => {
       }
     }
 
-    // --------------------------------------------------
-    // 6. Due date
-    //    null / "" means remove due date
-    // --------------------------------------------------
+    // Update Due Date
     if (dueDate !== undefined) {
       if (dueDate === null || dueDate === "") {
         task.dueDate = undefined;
       } else {
         const parsedDate = new Date(dueDate);
-
         if (Number.isNaN(parsedDate.getTime())) {
-          return res.status(400).json({
-            message: "Invalid due date.",
-          });
+          return res.status(400).json({ message: "Invalid due date." });
         }
-
         task.dueDate = parsedDate;
       }
     }
 
-    // --------------------------------------------------
-    // 7. Save
-    // --------------------------------------------------
     await task.save();
 
-    // --------------------------------------------------
-    // 8. Detect actual changes
-    // --------------------------------------------------
+    // 2. Audit Trail & Activity Logging
     const changes = [];
 
     if (oldTask.title !== task.title) {
       changes.push(`title changed to "${task.title}"`);
     }
-
     if (oldTask.description !== task.description) {
       changes.push("description updated");
     }
-
     if (oldTask.status !== task.status) {
       changes.push(`status changed to "${task.status}"`);
     }
-
     if (oldTask.priority !== task.priority) {
       changes.push(`priority changed to "${task.priority}"`);
     }
 
-    const newAssignedTo =
-      task.assignedTo?.toString();
-
+    const newAssignedTo = task.assignedTo?.toString();
     if (oldTask.assignedTo !== newAssignedTo) {
-      if (!newAssignedTo) {
-        changes.push("task unassigned");
-      } else {
-        changes.push("assigned member changed");
-      }
+      changes.push(newAssignedTo ? "assigned member changed" : "task unassigned");
     }
 
-    const oldDueDate = oldTask.dueDate
-      ? new Date(oldTask.dueDate)
-          .toISOString()
-          .split("T")[0]
-      : undefined;
-
-    const newDueDate = task.dueDate
-      ? new Date(task.dueDate)
-          .toISOString()
-          .split("T")[0]
-      : undefined;
-
+    const oldDueDate = oldTask.dueDate ? new Date(oldTask.dueDate).toISOString().split("T")[0] : undefined;
+    const newDueDate = task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : undefined;
     if (oldDueDate !== newDueDate) {
-      changes.push(
-        newDueDate
-          ? "due date changed"
-          : "due date removed"
-      );
+      changes.push(newDueDate ? "due date changed" : "due date removed");
     }
 
-    // --------------------------------------------------
-    // 9. Activity log
-    // --------------------------------------------------
     if (changes.length > 0) {
       await logActivity({
         organisation: req.org._id,
@@ -335,13 +227,9 @@ export const updateTask = async (req, res) => {
       message: "Task updated successfully",
       task,
     });
-
   } catch (err) {
     console.error("UPDATE TASK ERROR:", err);
-
-    return res.status(500).json({
-      message: err.message,
-    });
+    return res.status(500).json({ message: err.message });
   }
 };
 

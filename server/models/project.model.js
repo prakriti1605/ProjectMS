@@ -1,38 +1,81 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose from "mongoose";
 
-const projectSchema = new Schema(
+const phaseSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Phase name is required"],
+      trim: true,
+    },
+    startDate: {
+      type: Date,
+      required: [true, "Start date is required"],
+    },
+    endDate: {
+      type: Date,
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    isMilestone: {
+      type: Boolean,
+      default: false,
+    },
+    status: {
+      type: String,
+      enum: ["Pending", "In Progress", "Completed"],
+      default: "In Progress",
+    },
+    progress: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+  },
+  { timestamps: true }
+);
+
+const projectSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
       trim: true,
     },
-
     description: {
       type: String,
-      trim: true,
+      default: "",
     },
-
     organisation: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Organisation",
       required: true,
     },
-
     createdBy: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-
     status: {
       type: String,
-      enum: ["Planning", "In Progress", "On Hold", "Completed", "Cancelled","Active"],
+      enum: ["Active", "Completed", "Archived"],
       default: "Active",
     },
+    // Top-level Master Timeline dates
+    startDate: {
+      type: Date,
+    },
+    endDate: {
+      type: Date,
+    },
+    // Embedded Phase Schema
+    phases: [phaseSchema],
   },
   { timestamps: true }
 );
-projectSchema.index({ organisation: 1 });
 
-export default mongoose.model("Project", projectSchema);
+const Project = mongoose.model("Project", projectSchema);
+export default Project;

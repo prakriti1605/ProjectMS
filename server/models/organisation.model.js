@@ -1,13 +1,12 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose from "mongoose";
 
-const Organisation = new Schema(
+const organisation = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
       trim: true,
     },
-
     description: {
       type: String,
       trim: true,
@@ -15,36 +14,13 @@ const Organisation = new Schema(
     joinCode: {
       type: String,
       unique: true,
-      sparse: true
+      sparse: true,
     },
-
     joinCodeExpiresAt: {
-      type: Date
+      type: Date,
     },
-    members: [
-    {
-        user: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-            required: true
-        },
-
-        role: {
-            type: String,
-            enum: ["owner", "admin", "member"],
-            default: "member"
-        },
-
-        permissions: [
-            {
-                type: String
-            }
-        ]
-    }
-  ]
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Organisation", Organisation
-);
+export default mongoose.model("Organisation", organisation);

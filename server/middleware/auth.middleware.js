@@ -1,40 +1,27 @@
 import jwt from "jsonwebtoken";
-import User from "../models/user.model.js";
 
-export const protect = async (req, res, next) => {
-  let token;
-  console.log("HEADERS:", req.headers.authorization);
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-
-  if (!token) {
-    return res.status(401).json({ message: "Not authorized" });
-  }
-
+export const protect = (req, res, next) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let token;
 
-    const user = await User.findById(decoded.id).select("-password");
-    console.log("USER.username =", user.username);
-console.log("USER.username =", user.username);
-console.log("USER.toObject() =", user.toObject());
-    req.user = user;
-    console.log("USER OBJECT:", user);
-    console.log("REQ.USER.username =", req.user.username);
-console.log("REQ.USER.username =", req.user.username);
-
-    if (!user) {
-      return res.status(401).json({ message: "User not found" });
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
     }
 
+    if (!token) {
+      return res.status(401).json({ message: "Not authorized, no token" });
+    }
+
+    // Decode token directly - Zero DB calls required
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // { _id, username, email }
+
     next();
-  } catch (err) {
-    return res.status(401).json({ message: "Token invalid" });
+  } catch (error) {
+    return res.status(401).json({ message: "Token failed or expired" });
   }
 };
-
 // user request send karega toh teen gate honge. Pahle gate pe ye check hoga ki user logged in hai. Agar logged in hai toh verified hai ya nhi.

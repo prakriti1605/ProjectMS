@@ -1,42 +1,19 @@
+// src/api/org.api.js
 import api from "./axios";
 
 export const orgApi = {
-  create: (name) => 
-    api.post("/org", { name }),
+  create: (name) => api.post("/org", { name }),
+  getAll: () => api.get("/org"),
+  getById: (id) => api.get(`/org/${id}`),
+  joinOrganisation: (joinCode) => api.post("/org/join", { joinCode }),
 
-  getAll: () => 
-    api.get("/org"),
+  // Join Code endpoint
+  generateJoinCode: (orgId) => api.post(`/org/${orgId}/join-code`),
 
-  getById: (orgId) => 
-    api.get(`/org/${orgId}`),
-
-  update: (orgId, data) => 
-    api.patch(`/org/${orgId}`, data),
-
-  delete: (orgId) => 
-    api.delete(`/org/${orgId}`),
-
+  // Members API endpoints
+  getMembers: (orgId) => api.get(`/org/${orgId}/members`),
   updateMemberRole: (orgId, userId, role) =>
-    api.patch(
-      `/org/${orgId}/members/${userId}/role`, 
-      { role }
-    ),
-
-  // Granular Member Permissions API
-  updateMemberPermissions: (orgId, userId, permissions) =>
-    api.patch(
-      `/org/${orgId}/members/${userId}/permissions`, 
-      { permissions }
-    ),
-
+    api.patch(`/org/${orgId}/members/${userId}/role`, { role }),
   removeMember: (orgId, userId) =>
-    api.delete(
-      `/org/${orgId}/members/${userId}`
-    ),
-
-  generateJoinCode: (orgId) =>
-    api.post(`/org/${orgId}/join-code`),
-
-  joinOrganisation: (joinCode) =>
-    api.post("/org/join", { joinCode }),
+    api.delete(`/org/${orgId}/members/${userId}`),
 };

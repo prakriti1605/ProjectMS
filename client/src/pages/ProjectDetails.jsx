@@ -1,379 +1,216 @@
-import { useEffect, useState } from "react";
-import {
-useParams,
-useNavigate,
-} from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import ProjectHeader from "../components/project/ProjectHeader";
-import TaskList from "../components/tasks/TaskList";
-import TaskDetailsModal from "../components/tasks/taskDetailsModal";
-import EditTaskModal from "../components/tasks/EditTaskModal";
-import CreateTaskModal from "../components/tasks/CreateTaskModal";
-import ProjectSettingsModal from "../components/project/ProjectSettingsModal";
-
-import { orgApi } from "../api/org.api";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { useOrganisation } from "../context/OrganisationContext";
 import { projectApi } from "../api/project.api";
 import { taskApi } from "../api/task.api";
+import { Kanban, Calendar, Users, BarChart3 } from "lucide-react";
+
+// Tab Components
+import TasksTab from "../components/project/tabs/TasksTab";
+import PlanAndDesignTab from "../components/project/tabs/PlanAndDesignTab";
+import WorkloadTab from "../components/project/tabs/WorkloadTab";
+import InsightsTab from "../components/project/tabs/InsightsTab";
 
 export default function ProjectDetails() {
-const { orgId, projectId } = useParams();
-const navigate = useNavigate();
-const { user } = useAuth();
+  const params = useParams();
+  const { selectedOrganisation } = useOrganisation();
 
-// Project State
+  // Extract Params safely (Supports both route patterns)
+  const projectId = params.projectId || params.id;
+  
+  // State
+  const [project, setProject] = useState(null);
+  const [tasks, setTasks] = useState([]);
+  const [phases, setPhases] = useState([]);
+  const [activeTab, setActiveTab] = useState("tasks");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-const [project, setProject] = useState(null);
-const [loading, setLoading] = useState(true);
-const [error, setError] = useState("");
+  
 
-// Task State
+  // Safely resolve Organisation ID
+  const effectiveOrgId =
+    params.orgId ||
+    selectedOrganisation?._id ||
+    project?.organisation?._id ||
+    project?.organisation;
 
-const [tasks, setTasks] = useState([]);
-const [selectedTask, setSelectedTask] =
-useState(null);
+  //   console.log("1. ProjectDetails State:", {
+  //   routeParams: params,
+  //   projectId,
+  //   orgIdVariable: orgId,
+  //   projectOrganisationField: project?.organisation,
+  //   selectedOrgFromContext: selectedOrganisation?._id,
+  // });
 
-// Modal State
+  const fetchProjectData = async () => {
+    if (!projectId) return;
 
-const [showTaskDetails, setShowTaskDetails] =
-useState(false);
+    try {
+      setLoading(true);
+      setError("");
 
-const [showEditModal, setShowEditModal] =
-useState(false);
+      // Single or 2-parameter fetch
+      const projRes = await projectApi.getById(effectiveOrgId, projectId);
+      const loadedProject = projRes.data.project || projRes.data;
 
-const [showCreateModal, setShowCreateModal] =
-useState(false);
+      setProject(loadedProject);
+      setPhases(loadedProject?.phases || projRes.data.phases || []);
 
-const [showSettings, setShowSettings] =
-useState(false);
-
-// Members
-const [members, setMembers] = useState([]);
-const currMember = members.find(
-  (member) => member.user?._id === user?._id
-);
-// Fetch Project
-const fetchProject = async () => {
-try {
-setLoading(true);
-
-  const res = await projectApi.getById(
-    orgId,
-    projectId
-  );
-
-  setProject(res.data.project);
-} catch (err) {
-  console.error(
-    "Failed to load project:",
-    err
-  );
-
-  setError("Failed to load project");
-} finally {
-  setLoading(false);
-}
-
-};
-
-// Fetch Tasks
-const fetchTasks = async () => {
-  try {
-    const res = await taskApi.getByProject(
-      orgId,
-      projectId
-    );
-
-    setTasks(res.data.tasks || []);
-  } catch (err) {
-    console.error(
-      "Failed to load tasks:",
-      err
-    );
-  }
-};
-
-// Fetch Members
-const fetchMembers = async () => {
-  try {
-    const res = await orgApi.getById(orgId);
-
-    console.log("FULL ORG RESPONSE:", res.data);
-
-    setMembers(
-      res.data.members || []
-    );
-
-  } catch (err) {
-    console.error(
-      "Failed to load members:",
-      err
-    );
-  }
-};
-
-// Initial Data Fetch
-
-useEffect(() => {
-fetchProject();
-fetchTasks();
-fetchMembers();
-}, [orgId, projectId]);
-
-// Task Handlers
-
-const handleSelectTask = (task) => {
-setSelectedTask(task);
-setShowTaskDetails(true);
-};
-
-const handleCloseTaskDetails = () => {
-setSelectedTask(null);
-setShowTaskDetails(false);
-};
-
-const handleCreateTask = () => {
-setShowCreateModal(true);
-};
-
-const handleCreateTaskSubmit = async (data) => {
-try {
-await taskApi.create(
-orgId,
-projectId,
-data
-);
-
-  setShowCreateModal(false);
-
-  await fetchTasks();
-} catch (err) {
-  console.error(
-    "Failed to create task:",
-    err
-  );
-
-  alert(
-    err.response?.data?.message ||
-      "Failed to create task"
-  );
-}
-
-};
-
-const handleEditTask = (task) => {
-setSelectedTask(task);
-setShowTaskDetails(false);
-setShowEditModal(true);
-};
-
-const handleUpdateTask = async (data) => {
-  try {
-    await taskApi.update(
-      orgId,
-      projectId,
-      selectedTask._id,
-      data
-    );
-
-    setShowEditModal(false);
-    setShowTaskDetails(false);
-
-    await fetchTasks();
-  } catch (err) {
-    console.error(
-      "Failed to update task:",
-      err
-    );
-  }
-};
-
-const handleDeleteTask = async (task) => {
-// Optimistic UI update
-setTasks((prev) =>
-prev.filter(
-(t) => t._id !== task._id
-)
-);
-
-setShowTaskDetails(false);
-
-try {
-  await taskApi.delete(
-    orgId,
-    projectId,
-    task._id
-  );
-} catch (err) {
-  console.error(
-    "Failed to delete task:",
-    err
-  );
-
-  // Restore actual server state
-  try {
-    const res =
-      await taskApi.getByProject(
-        orgId,
-        projectId
-      );
-
-    setTasks(
-      res.data.tasks || []
-    );
-  } catch (fetchErr) {
-    console.error(
-      "Failed to refetch tasks:",
-      fetchErr
-    );
-  }
-}
-
-};
-
-// Project Settings Handlers
-
-const handleUpdateProject = async (data) => {
-try {
-    const res =await projectApi.update(orgId,projectId,data);
-      setProject(
-        res.data.project);
-      setShowSettings(false);
+      // Fetch tasks for the project
+      try {
+        const taskRes = await taskApi.getByProject(effectiveOrgId, projectId);
+        setTasks(taskRes.data.tasks || taskRes.data || []);
+      } catch (taskErr) {
+        console.warn("Task fetch warning:", taskErr);
+        setTasks([]);
+      }
     } catch (err) {
-      console.error(
-        "Failed to update project:",
-        err
-      );
-      throw err;
+      console.error("Failed to load project details:", err);
+      setError(err.response?.data?.message || "Failed to load project workspace");
+    } finally {
+      setLoading(false);
     }
-};
+  };
 
-const handleDeleteProject = async () => {
-try {
-await projectApi.delete(
-orgId,
-projectId
-);
+  useEffect(() => {
+    if (projectId) {
+      fetchProjectData();
+    }
+  }, [projectId]);
 
-  navigate(`/org/${orgId}`);
-} catch (err) {
-  console.error(
-    "Failed to delete project:",
-    err
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px] text-gray-400">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-500 mr-3"></div>
+        Loading Project Workspace...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-red-900/20 border border-red-500/30 rounded-xl text-red-400 max-w-2xl mx-auto my-8 text-center">
+        <p className="font-semibold text-lg">{error}</p>
+        <button
+          onClick={fetchProjectData}
+          className="mt-4 px-4 py-2 bg-red-600/30 hover:bg-red-600/50 text-red-200 rounded-lg text-sm transition"
+        >
+          Retry Loading
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 p-6 bg-[#121212] min-h-screen text-white">
+      {/* Title Header */}
+      <div className="flex items-center justify-between border-b border-gray-800 pb-5">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-wide">
+            {project?.name || "Project Details"}
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">
+            {project?.description || "Project Workspace"}
+          </p>
+        </div>
+      </div>
+
+      {/* 4 Tab Selector Navigation */}
+      <div className="flex border-b border-gray-800 text-sm font-medium">
+        <button
+          onClick={() => setActiveTab("tasks")}
+          className={`flex items-center gap-2 px-6 py-3 border-b-2 font-medium transition ${
+            activeTab === "tasks"
+              ? "border-orange-500 text-orange-400 bg-orange-500/5"
+              : "border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700"
+          }`}
+        >
+          <Kanban className="w-4 h-4" />
+          Tasks
+        </button>
+
+        <button
+          onClick={() => setActiveTab("plan")}
+          className={`flex items-center gap-2 px-6 py-3 border-b-2 font-medium transition ${
+            activeTab === "plan"
+              ? "border-orange-500 text-orange-400 bg-orange-500/5"
+              : "border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700"
+          }`}
+        >
+          <Calendar className="w-4 h-4" />
+          Plan & Design
+        </button>
+
+        <button
+          onClick={() => setActiveTab("workload")}
+          className={`flex items-center gap-2 px-6 py-3 border-b-2 font-medium transition ${
+            activeTab === "workload"
+              ? "border-orange-500 text-orange-400 bg-orange-500/5"
+              : "border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700"
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          Workload
+        </button>
+
+        <button
+          onClick={() => setActiveTab("insights")}
+          className={`flex items-center gap-2 px-6 py-3 border-b-2 font-medium transition ${
+            activeTab === "insights"
+              ? "border-orange-500 text-orange-400 bg-orange-500/5"
+              : "border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700"
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          Insights
+        </button>
+      </div>
+
+      {/* Tab Component Views */}
+      <div className="pt-2">
+        {activeTab === "tasks" && (
+          <TasksTab
+            project={project}
+            phases={phases}
+            tasks={tasks}
+            orgId={effectiveOrgId}
+            projectId={projectId}
+            onRefresh={fetchProjectData}
+          />
+        )}
+
+        {activeTab === "plan" && (
+          <PlanAndDesignTab
+            project={project}
+            phases={phases}
+            tasks={tasks}
+            orgId={effectiveOrgId}
+            projectId={projectId}
+            onRefresh={fetchProjectData}
+          />
+        )}
+
+        {activeTab === "workload" && (
+          <WorkloadTab
+            project={project}
+            phases={phases}
+            tasks={tasks}
+            orgId={effectiveOrgId}
+            projectId={projectId}
+          />
+        )}
+
+        {activeTab === "insights" && (
+          <InsightsTab
+            project={project}
+            phases={phases}
+            tasks={tasks}
+            orgId={effectiveOrgId}
+            projectId={projectId}
+          />
+        )}
+      </div>
+    </div>
   );
-
-  throw err;
-}
-
-};
-
-// Loading State
-
-if (loading) {
-return (
-<div className="p-6 text-gray-400">
-Loading project...
-</div>
-);
-}
-
-// Error State
-
-if (error) {
-return (
-<div className="p-6 text-red-400">
-{error}
-</div>
-);
-}
-
-// Page
-
-return (
-<div className="p-6">
-
-  {/* Project Header */}
-
-  <ProjectHeader
-    project={project}
-    orgId={orgId}
-    onSettings={() =>
-      setShowSettings(true)
-    }
-  />
-
-
-  {/* Tasks */}
-
-  <TaskList
-    tasks={tasks}
-    onCreateTask={
-      handleCreateTask
-    }
-    onSelectTask={
-      handleSelectTask
-    }
-  />
-
-
-  {/* Create Task Modal */}
-
-  <CreateTaskModal
-    open={showCreateModal}
-    members={members}
-    onClose={() =>
-      setShowCreateModal(false)
-    }
-    onCreate={
-      handleCreateTaskSubmit
-    }
-  />
-
-
-  {/* Task Details Modal */}
-
-  <TaskDetailsModal
-    task={selectedTask}
-    open={showTaskDetails}
-    onClose={
-      handleCloseTaskDetails
-    }
-    onEdit={handleEditTask}
-    onDelete={handleDeleteTask}
-  />
-
-
-  {/* Edit Task Modal */}
-
-  <EditTaskModal
-    open={showEditModal}
-    task={selectedTask}
-    members={members}
-    currMember={currMember}
-    currentUser={user}
-    onClose={() =>
-      setShowEditModal(false)
-    }
-    onUpdate={handleUpdateTask}
-  />
-
-
-  {/* Project Settings Modal */}
-
-  <ProjectSettingsModal
-    open={showSettings}
-    project={project}
-    onClose={() =>
-      setShowSettings(false)
-    }
-    onUpdate={
-      handleUpdateProject
-    }
-    onDelete={
-      handleDeleteProject
-    }
-  />
-
-</div>
-
-);
 }

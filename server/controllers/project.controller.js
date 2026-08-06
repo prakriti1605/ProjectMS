@@ -1,104 +1,236 @@
-
 import Project from "../models/project.model.js";
-import  {logActivity}  from "../utils/actvityLogger.js";
+import { logActivity } from "../utils/actvityLogger.js";
 
+
+// 1. Create Project (Updated with startDate & endDate)
 export const createProject = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { orgId } = req.params;
+    const { name, description, startDate, endDate } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Project name is required" });
+    }
 
     const project = await Project.create({
       name,
-      description,
-      organisation: req.org._id,
+      description: description || "",
+      organisation: orgId,
       createdBy: req.user._id,
-    });
-
-    await logActivity({
-      organisation: req.org._id,
-      project: project._id,
-      actor: req.user._id,
-      action: "PROJECT_CREATED",
-      message: `${req.user.username} created project "${project.name}"`,
+      startDate: startDate || null,
+      endDate: endDate || null,
     });
 
     return res.status(201).json({
-      message: "Project created",
+      message: "Project created successfully",
       project,
     });
-  } catch (err) {
-    return res.status(500).json({
-      message: err.message,
-    });
+  } catch (error) {
+    console.error("CREATE PROJECT ERROR:", error);
+    return res.status(500).json({ message: error.message });
   }
 };
 
-export const getProjects = async (req, res) => {
-  try {
-    const projects = await Project.find({
-    organisation: req.org._id,
-    }).populate("createdBy", "username email");
-
-return res.json({ projects });
-
-  } catch (err) {
-    return res.status(500).json({
-      message: err.message,
-    });
-  }
-};
-
-export const getProjectById = async (req, res) => {
-    const project = await Project.findById(req.params.projectId)
-  .populate("createdBy", "username email");
-
-return res.json({ project });
-};
-
+// 2. Update Project Details (Updated with startDate & endDate)
 export const updateProject = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { projectId } = req.params;
+    const { name, description, status, startDate, endDate } = req.body;
 
-    if (name !== undefined) req.project.name = name;
-    if (description !== undefined) req.project.description = description;
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
 
-    await req.project.save();
+    if (name !== undefined) project.name = name;
+    if (description !== undefined) project.description = description;
+    if (status !== undefined) project.status = status;
+    if (startDate !== undefined) project.startDate = startDate;
+    if (endDate !== undefined) project.endDate = endDate;
 
-    await logActivity({
-      organisation: req.org._id,
-      project: req.project._id,
-      actor: req.user._id,
-      action: "PROJECT_UPDATED",
-      message: `${req.user.username} updated project "${req.project.name}"`,
-    });
+    await project.save();
 
-    res.json({
+    return res.status(200).json({
       message: "Project updated successfully",
-      project: req.project,
+      project,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("UPDATE PROJECT ERROR:", error);
+    return res.status(500).json({ message: error.message });
   }
 };
 
-export const deleteProject = async (req, res) => {
+// 3. Update Master Project Timeline Dates
+// Helper to clean up stringified quotes around Mongo ObjectIds
+const cleanId = (id) => (typeof id === "string" ? id.replace(/["']/g, "").trim() : id);
+
+// Update Master Project Timeline
+export const updateProjectTimeline = async (req, res) => {
   try {
-    const projectName = req.project.name;
-    const projectId = req.project._id;
+    const projectId = cleanId(req.params.projectId);
+    const { startDate, endDate } = req.body;
 
-    await req.project.deleteOne();
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
 
-    await logActivity({
-      organisation: req.org._id,
-      project: projectId,
-      actor: req.user._id,
-      action: "PROJECT_DELETED",
-      message: `${req.user.username} deleted project "${projectName}"`,
-    });
+    if (startDate !== undefined) project.startDate = startDate;
+    if (endDate !== undefined) project.endDate = endDate;
 
-    res.json({
-      message: "Project deleted successfully",
+    await project.save();
+
+    return res.status(200).json({
+      message: "Project timeline updated successfully",
+      project,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("UPDATE TIMELINE ERROR:", error);
+    return res.status(500).json({ message: error.message });
   }
 };
+
+// Create Phase
+export const createPhase = async (req, res) => {
+  try {
+    const projectId = cleanId(req.params.projectId);
+    const { name, startDate, endDate, description, isMilestone, status } = req.body;
+
+    if (!name || !startDate) {
+      return res.status(400).json({ message: "Phase name and start date are required" });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    const newPhase = {
+      name,
+      startDate,
+      endDate: endDate || null,
+      description: description || "",
+      isMilestone: isMilestone || false,
+      status: status || "In Progress",
+    };
+
+    project.phases.push(newPhase);
+    await project.save();
+
+    return res.status(201).json({
+      message: "Phase created successfully",
+      phases: project.phases,
+      phase: project.phases[project.phases.length - 1],
+    });
+  } catch (error) {
+    console.error("CREATE PHASE ERROR:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// Update Phase
+export const updatePhase = async (req, res) => {
+  try {
+    const projectId = cleanId(req.params.projectId);
+    const phaseId = cleanId(req.params.phaseId);
+    const { name, startDate, endDate, description, isMilestone, status, progress } = req.body;
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    const phase = project.phases.id(phaseId);
+    if (!phase) {
+      return res.status(404).json({ message: "Phase not found" });
+    }
+
+    if (name !== undefined) phase.name = name;
+    if (startDate !== undefined) phase.startDate = startDate;
+    if (endDate !== undefined) phase.endDate = endDate;
+    if (description !== undefined) phase.description = description;
+    if (isMilestone !== undefined) phase.isMilestone = isMilestone;
+    if (status !== undefined) phase.status = status;
+    if (progress !== undefined) phase.progress = progress;
+
+    await project.save();
+
+    return res.status(200).json({
+      message: "Phase updated successfully",
+      phases: project.phases,
+      phase,
+    });
+  } catch (error) {
+    console.error("UPDATE PHASE ERROR:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// Delete Phase
+export const deletePhase = async (req, res) => {
+  try {
+    const projectId = cleanId(req.params.projectId);
+    const phaseId = cleanId(req.params.phaseId);
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    project.phases = project.phases.filter((p) => p._id.toString() !== phaseId);
+    await project.save();
+
+    return res.status(200).json({
+      message: "Phase deleted successfully",
+      phases: project.phases,
+    });
+  } catch (error) {
+    console.error("DELETE PHASE ERROR:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get all projects for an organisation
+// @route   GET /api/projects/:orgId
+// Fetch all projects for an organisation
+export const getProjectsByOrg = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+
+    if (!orgId) {
+      return res.status(400).json({ message: "Organisation ID is required" });
+    }
+
+    const projects = await Project.find({ organisation: orgId })
+      .populate("createdBy", "name email")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      projects,
+    });
+  } catch (error) {
+    console.error("GET PROJECTS ERROR:", error);
+    return res.status(500).json({ message: error.message || "Server Error" });
+  }
+};
+
+// @desc    Get a single project by orgId and projectId
+// @route   GET /api/projects/:orgId/:projectId
+export const getProjectById = async (req, res) => {
+  try {
+    const project = await Project.findOne({
+      _id: req.params.projectId,
+      organisation: req.org._id,
+    }).populate("createdBy", "username email");
+
+    if (!project) {
+      return res.status(404).json({ message: "Project not found in this organisation." });
+    }
+
+    return res.json({ project, phases: project.phases || [] });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+

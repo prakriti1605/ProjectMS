@@ -1,20 +1,27 @@
 export const requirePermission = (permission) => {
   return (req, res, next) => {
+    try {
+      if (!req.member) {
+        return res.status(403).json({ message: "Member context missing" });
+      }
 
-    console.log("Required Permission:", permission);
-    console.log("User Permissions:", req.member.permissions);
+      // Owners always bypass individual permission checks
+      if (req.member.role === "owner") {
+        return next();
+      }
 
-    const allowed = req.member.permissions.includes(permission);
+      const hasPermission = req.member.permissions.includes(permission);
 
-    console.log("Allowed:", allowed);
+      if (!hasPermission) {
+        return res.status(403).json({
+          message: `Forbidden: You lack the required permission (${permission})`,
+        });
+      }
 
-    if (!allowed) {
-      return res.status(403).json({
-        message: "You do not have permission to perform this action."
-      });
+      next();
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
     }
-    console.log("Permission granted");
-    next();
   };
 };
 export const authorizeTaskUpdate = (req, res, next) => {

@@ -1,57 +1,75 @@
 import express from "express";
-
-import {
-  createProject,
-  getProjects,
-  getProjectById,
-  updateProject,
-  deleteProject
-} from "../controllers/project.controller.js";
-
 import { protect } from "../middleware/auth.middleware.js";
 import { checkOrganisationAccess } from "../middleware/org.middleware.js";
 import { requirePermission } from "../middleware/permission.middleware.js";
 import { PERMISSIONS } from "../config/permission.js";
-import { checkProjectAccess } from "../middleware/project.middleware.js";
+
+import {
+  getProjectsByOrg,
+  getProjectById,
+  createProject,
+  updateProject,
+  updateProjectTimeline,
+  createPhase,
+  updatePhase,
+  deletePhase,
+} from "../controllers/project.controller.js";
 
 const router = express.Router();
 
+router.use(protect);
+
+// 1. Specific Org Projects List Route (MUST be above generic /:projectId routes)
+router.get("/org/:orgId", checkOrganisationAccess, getProjectsByOrg);
+
+// 2. Timeline Patch Route
+router.patch(
+  "/:orgId/:projectId/timeline",
+  checkOrganisationAccess,
+  requirePermission(PERMISSIONS.PROJECT_UPDATE),
+  updateProjectTimeline
+);
+
+// 3. Phase Operations Routes
+router.post(
+  "/:orgId/:projectId/phases",
+  checkOrganisationAccess,
+  requirePermission(PERMISSIONS.PROJECT_UPDATE),
+  createPhase
+);
+
+router.patch(
+  "/:orgId/:projectId/phases/:phaseId",
+  checkOrganisationAccess,
+  requirePermission(PERMISSIONS.PROJECT_UPDATE),
+  updatePhase
+);
+
+router.delete(
+  "/:orgId/:projectId/phases/:phaseId",
+  checkOrganisationAccess,
+  requirePermission(PERMISSIONS.PROJECT_UPDATE),
+  deletePhase
+);
+
+// 4. Create Project
 router.post(
   "/:orgId",
-  protect,
   checkOrganisationAccess,
   requirePermission(PERMISSIONS.PROJECT_CREATE),
   createProject
 );
 
-router.get(
-  "/:orgId",
-  protect,
-  checkOrganisationAccess,
-  getProjects
-);
-
-router.get(
-  "/:orgId/:projectId",
-  protect,
-  checkProjectAccess,
-  getProjectById
-);
-
+// 5. Update Project Details
 router.patch(
   "/:orgId/:projectId",
-  protect,
-  checkProjectAccess,
+  checkOrganisationAccess,
   requirePermission(PERMISSIONS.PROJECT_UPDATE),
   updateProject
 );
 
-router.delete(
-  "/:orgId/:projectId",
-  protect,
-  checkProjectAccess,
-  requirePermission(PERMISSIONS.PROJECT_DELETE),
-  deleteProject
-);
+// 6. Get Single Project Details Route
+// (checkOrganisationAccess sets req.org which getProjectById requires for req.org._id)
+router.get("/:orgId/:projectId", checkOrganisationAccess, getProjectById);
 
 export default router;

@@ -1,29 +1,32 @@
-import Project from "../models/project.model.js";
-import Organisation from "../models/organisation.model.js";
+// server/middleware/project.middleware.js
+import Project from "../models/project.model.js"; // Make sure Project model is imported!
 
 export const checkProjectAccess = async (req, res, next) => {
-    console.log("Project ID:", req.params.projectId);
+  try {
+    const { projectId, orgId } = req.params;
 
-    const project = await Project.findById(req.params.projectId);
+    // Use orgId from params or attached req.org
+    const targetOrgId = orgId || req.org?._id;
+
+    if (!projectId) {
+      return res.status(400).json({ message: "Project ID is required" });
+    }
+
+    // Find the project in database
+    const project = await Project.findOne({
+      _id: projectId,
+      organisation: targetOrgId,
+    });
 
     if (!project) {
-        return res.status(404).json({ message: "Project not found" });
+      return res.status(404).json({ message: "Project not found in this organisation" });
     }
 
-    const org = await Organisation.findById(project.organisation);
-    console.log("Organisation:", org);
-    const member = org.members.find(m =>
-        m.user.equals(req.user._id)
-    );
-
-    if (!member) {
-        return res.status(403).json({ message: "Not a member" });
-    }
-    console.log("Member:", member);
-
+    // Attach project object to request for downstream controllers
     req.project = project;
-    req.org = org;
-    req.member = member;
-
     next();
+  } catch (error) {
+    console.error("checkProjectAccess Error:", error);
+    return res.status(500).json({ message: error.message });
+  }
 };

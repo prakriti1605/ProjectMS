@@ -1,7 +1,7 @@
 import express from "express";
 import { protect } from "../middleware/auth.middleware.js";
-import {checkOrganisationAccess} from "../middleware/org.middleware.js";
-import {requirePermission} from "../middleware/permission.middleware.js";
+import { checkOrganisationAccess } from "../middleware/org.middleware.js";
+import { requirePermission } from "../middleware/permission.middleware.js";
 import { PERMISSIONS } from "../config/permission.js";
 
 import {
@@ -15,50 +15,54 @@ import {
   deleteOrganisation,
   generateJoinCode,
   joinOrganisationByCode,
-  updateMemberPermissions
+  getOrgMembers,
 } from "../controllers/organisation.controller.js";
 
 const router = express.Router();
 
-// all org routes are protected
 router.use(protect);
 
-// create organisation
-router.post("/",protect,createOrg);
+router.post("/", createOrg);
 
-// get all organisations of logged-in user
-router.get("/", protect, getMyOrgs);
+router.get("/", 
+  protect,
+  getMyOrgs);
 
-// get single organisation
-router.get("/:orgId", protect, checkOrganisationAccess, getOrgById);
+router.get("/:orgId", 
+  checkOrganisationAccess, 
+  getOrgById);
 
-// add member to organisation
+// --- GET ALL MEMBERS ROUTE (ADDED) ---
+router.get("/:orgId/members",
+  checkOrganisationAccess, 
+  getOrgMembers);
+
+// add member
 router.post(
   "/:orgId/addMembers", 
-  protect, 
   checkOrganisationAccess,
-  requirePermission(PERMISSIONS.MEMBER_INVITE),addMember);
-//delete member from org 
+  requirePermission(PERMISSIONS.MEMBER_INVITE),
+  addMember
+);
+
+// delete member 
 router.delete(
   "/:orgId/members/:userId",
-  protect,
   checkOrganisationAccess,
   requirePermission(PERMISSIONS.MEMBER_REMOVE),
   removeMember
 );
-//change member role
+
+// change member role
 router.patch(
   "/:orgId/members/:userId/role",
-  protect,
   checkOrganisationAccess,
   requirePermission(PERMISSIONS.MEMBER_UPDATE_PERMISSIONS),
   updateMemberRole
 );
 
-
 router.patch(
   "/:orgId",
-  protect,
   checkOrganisationAccess,
   requirePermission(PERMISSIONS.ORG_UPDATE),
   updateOrganisation
@@ -66,7 +70,6 @@ router.patch(
 
 router.delete(
   "/:orgId",
-  protect,
   checkOrganisationAccess,
   requirePermission(PERMISSIONS.ORG_DELETE),
   deleteOrganisation
@@ -74,15 +77,11 @@ router.delete(
 
 router.post(
   "/:orgId/join-code",
-  protect,
   checkOrganisationAccess,
   requirePermission(PERMISSIONS.ORG_JOIN_CODE_MANAGE),
   generateJoinCode
 );
 
-router.post(
-  "/join",
-  protect,
-  joinOrganisationByCode
-);
+router.post("/join", joinOrganisationByCode);
+
 export default router;

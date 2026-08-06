@@ -1,441 +1,232 @@
-import { useMemo, useState, useEffect } from "react";
-import { Search, Users, Shield, MoreVertical, Trash2, UserCog } from "lucide-react";
-
+// src/pages/Members.jsx
+import { useState, useEffect } from "react";
 import { useOrganisation } from "../context/OrganisationContext";
 import { useAuth } from "../context/AuthContext";
 import { orgApi } from "../api/org.api";
 
-import { ManagePermissionsModal } from "../components/members/ManagePermissionsModal";
-import { ViewPermissionsModal } from "../components/members/ViewPermissionsModal";
-
 export default function Members() {
-  const {
-    selectedOrganisation,
-    organisations,
-    selectOrganisation,
-    refreshOrganisations,
-  } = useOrganisation();
-
-  const { user } = useAuth();
-
-  const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
-
-  const [openMenu, setOpenMenu] = useState(null);
-  const [updatingMember, setUpdatingMember] = useState(null);
-  const [removingMember, setRemovingMember] = useState(null);
-
-  // Permission Modals State
-  const [selectedMember, setSelectedMember] = useState(null);
-  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-
-  const [joinCode, setJoinCode] = useState(
-    selectedOrganisation?.joinCode || ""
-  );
-  const [joinCodeExpiresAt, setJoinCodeExpiresAt] = useState(
-    selectedOrganisation?.joinCodeExpiresAt || null
-  );
-
-  const [generatingCode, setGeneratingCode] = useState(false);
+  // 1. Extract orgLoading from OrganisationContext
+  const { selectedOrganisation, loading: orgLoading } = useOrganisation();
+  const { hasPermission, activeMembership, loading: authLoading } = useAuth(); // 1. Auth loading status
+ 
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // current user membership check
-  const currentUserMembership = useMemo(() => {
-    if (!selectedOrganisation || !user) return null;
+  // Join Code States
+  const [joinCode, setJoinCode] = useState("");
+  const [expiresAt, setExpiresAt] = useState(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-    return selectedOrganisation.members?.find(
-      (member) =>
-        member.user?._id?.toString() === (user._id || user.id)?.toString()
-    );
-  }, [selectedOrganisation, user]);
+  // Sync Join Code from selectedOrganisation
+  useEffect(() => {
+    if (selectedOrganisation) {
+      setJoinCode(selectedOrganisation.joinCode || "");
+      setExpiresAt(selectedOrganisation.joinCodeExpiresAt || null);
+    }
+  }, [selectedOrganisation]);
+
+  const fetchMembers = async () => {
+    // DO NOT run API call if selectedOrganisation isn't ready yet
+    if (!selectedOrganisation?._id || authLoading) return;
+
+    try {
+      setLoading(true);
+      setError("");
+      const res = await orgApi.getMembers(selectedOrganisation._id);
+      setMembers(res.data.members || []);
+    } catch (err) {
+      console.error("Fetch members error:", err);
+      if (err.response?.status === 403) {
+        setError("You do not have active access to view members of this organisation.");
+      } else {
+        setError(err.response?.data?.message || "Failed to load members");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    console.log("Selected Org:", selectedOrganisation?.name);
-    console.log("Current Membership:", currentUserMembership);
-  }, [selectedOrganisation, currentUserMembership]);
+    if (!authLoading && selectedOrganisation?._id) {
+      fetchMembers();
+    }
+  }, [authLoading , selectedOrganisation?._id]);
 
-  // filtered members list
-  const filteredMembers = useMemo(() => {
-    if (!selectedOrganisation?.members) return [];
-
-    return selectedOrganisation.members.filter((member) => {
-      const name = member.user?.username || member.user?.name || "";
-      const email = member.user?.email || "";
-
-      const matchesSearch =
-        name.toLowerCase().includes(search.toLowerCase()) ||
-        email.toLowerCase().includes(search.toLowerCase());
-
-      const matchesRole =
-        roleFilter === "all" || member.role === roleFilter;
-
-      return matchesSearch && matchesRole;
-    });
-  }, [selectedOrganisation, search, roleFilter]);
-
-  // Permissions checks
-  const canManageMembers = currentUserMembership?.permissions?.includes(
-    "member:updatePermissions"
-  );
-
-  const canRemoveMembers = currentUserMembership?.permissions?.includes(
-    "member:remove"
-  );
-
-  const canManageJoinCode = currentUserMembership?.permissions?.includes(
-    "org:joinCodeManage"
-  );
-
-  // handle generate code
-  const handleGenerateJoinCode = async () => {
+  const handleGenerateCode = async () => {
     try {
-      setError("");
       setGeneratingCode(true);
-
-      const response = await orgApi.generateJoinCode(
-        selectedOrganisation._id
-      );
-
-      const { joinCode, expiresAt } = response.data;
-
-      setJoinCode(joinCode);
-      setJoinCodeExpiresAt(expiresAt);
-
-      selectOrganisation({
-        ...selectedOrganisation,
-        joinCode,
-        joinCodeExpiresAt: expiresAt,
-      });
+      const res = await orgApi.generateJoinCode(selectedOrganisation._id);
+      setJoinCode(res.data.joinCode);
+      setExpiresAt(res.data.expiresAt);
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Failed to generate join code."
-      );
+      alert(err.response?.data?.message || "Failed to generate join code");
     } finally {
       setGeneratingCode(false);
     }
   };
 
-  const handleRoleChange = async (member, role) => {
+  const handleCopyCode = () => {
+    if (!joinCode) return;
+    navigator.clipboard.writeText(joinCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleRoleChange = async (userId, newRole) => {
     try {
-      setError("");
-      setUpdatingMember(member.user._id);
-
-      const response = await orgApi.updateMemberRole(
-        selectedOrganisation._id,
-        member.user._id,
-        role
-      );
-
-      await refreshOrganisations();
-      setOpenMenu(null);
+      await orgApi.updateMemberRole(selectedOrganisation._id, userId, newRole);
+      fetchMembers();
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Failed to update member role."
-      );
-    } finally {
-      setUpdatingMember(null);
+      alert(err.response?.data?.message || "Failed to update role");
     }
   };
 
-  const handleRemoveMember = async (member) => {
-    const confirmed = window.confirm(
-      `Remove ${member.user?.username || member.user?.name} from this organisation?`
-    );
-
-    if (!confirmed) return;
-
+  const handleRemoveMember = async (userId) => {
+    if (!window.confirm("Are you sure you want to remove this member?")) return;
     try {
-      setError("");
-      setRemovingMember(member.user._id);
-
-      await orgApi.removeMember(
-        selectedOrganisation._id,
-        member.user._id
-      );
-
-      await refreshOrganisations();
-      setOpenMenu(null);
+      await orgApi.removeMember(selectedOrganisation._id, userId);
+      fetchMembers();
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Failed to remove member."
-      );
-    } finally {
-      setRemovingMember(null);
+      alert(err.response?.data?.message || "Failed to remove member");
     }
   };
 
+  // 1. Wait for OrganisationContext to finish loading on initial direct navigation
+  if (authLoading || orgLoading) {
+    return <div className="p-6 text-center">Loading organisation...</div>;
+  }
+
+  // 2. Render warning if no organization is selected
   if (!selectedOrganisation) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mb-5">
-          <Users className="w-8 h-8 text-muted-foreground" />
-        </div>
-        <h1 className="text-2xl font-semibold mb-2">No organisation selected</h1>
-        <p className="text-muted-foreground max-w-md">
-          Select an organisation from the organisation selector to view its members.
-        </p>
-      </div>
-    );
+    return <div className="p-6 text-center">Please select an organisation first.</div>;
+  }
+
+  // 3. Render members loader
+  if (loading) {
+    return <div className="p-6 text-center">Loading members...</div>;
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Members</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage members of{" "}
-            <span className="text-foreground font-medium">
-              {selectedOrganisation.name}
-            </span>
+          <h1 className="text-2xl font-bold">Organisation Members</h1>
+          <p className="text-muted-foreground text-sm">
+            Manage roles and access for {selectedOrganisation.name}
           </p>
-        </div>
-
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <Users className="w-4 h-4" />
-          {selectedOrganisation.members?.length || 0} members
         </div>
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="border border-red-500/30 bg-red-500/10 text-red-400 rounded-lg px-4 py-3">
-          {error}
-        </div>
-      )}
+      {/* JOIN CODE BANNER */}
+      {(activeMembership?.role === "owner" || hasPermission("ORG_JOIN_CODE_MANAGE")) && (
+        <div className="bg-card border border-border p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm">
+          <div>
+            <h3 className="font-semibold text-sm">Invite Members with Join Code</h3>
+            <p className="text-xs text-muted-foreground">
+              {joinCode
+                ? `Active Code: expires on ${new Date(expiresAt).toLocaleDateString()}`
+                : "No active join code generated yet."}
+            </p>
+          </div>
 
-      {/* Join Code Card */}
-      {canManageJoinCode && (
-        <div className="bg-card border border-border rounded-xl p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold">Organisation Join Code</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Share this code with people who need to join this organisation.
-              </p>
-            </div>
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            {joinCode && (
+              <div className="flex items-center bg-secondary border border-border px-3 py-1.5 rounded-lg text-sm font-mono font-bold tracking-wider">
+                {joinCode}
+                <button
+                  onClick={handleCopyCode}
+                  className="ml-3 text-xs bg-primary/10 text-primary hover:bg-primary/20 px-2 py-0.5 rounded transition"
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            )}
 
             <button
-              onClick={handleGenerateJoinCode}
+              onClick={handleGenerateCode}
               disabled={generatingCode}
-              className="px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 disabled:opacity-50 cursor-pointer"
+              className="bg-primary text-primary-foreground px-3.5 py-1.5 text-xs rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
             >
               {generatingCode
                 ? "Generating..."
                 : joinCode
                 ? "Regenerate Code"
-                : "Generate Join Code"}
+                : "Generate Code"}
             </button>
           </div>
+        </div>
+      )}
 
-          {joinCode && (
-            <div className="mt-5 flex flex-col md:flex-row md:items-center gap-4">
-              <div className="flex-1 bg-secondary border border-border rounded-lg px-4 py-3 font-mono text-lg tracking-wider">
-                {joinCode}
-              </div>
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
 
-              {joinCodeExpiresAt && (
-                <p className="text-sm text-muted-foreground">
-                  Expires on {new Date(joinCodeExpiresAt).toLocaleDateString()}
-                </p>
+      {/* MEMBERS TABLE */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-secondary/50 border-b border-border text-muted-foreground">
+            <tr>
+              <th className="p-4 font-medium">Member</th>
+              <th className="p-4 font-medium">Email</th>
+              <th className="p-4 font-medium">Role</th>
+              {(hasPermission("ORG_MEMBER_UPDATE") || hasPermission("ORG_MEMBER_REMOVE")) && (
+                <th className="p-4 font-medium text-right">Actions</th>
               )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Search & Filters */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search members..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-3 outline-none focus:border-primary"
-          />
-        </div>
-
-        <select
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-          className="bg-card border border-border rounded-lg px-4 py-3 outline-none cursor-pointer"
-        >
-          <option value="all">All Roles</option>
-          <option value="owner">Owners</option>
-          <option value="admin">Admins</option>
-          <option value="member">Members</option>
-        </select>
-      </div>
-
-      {/* Members List */}
-      {filteredMembers.length === 0 ? (
-        <div className="bg-card border border-border rounded-xl p-10 text-center">
-          <Users className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">No members found</h2>
-          <p className="text-muted-foreground mt-2">
-            Try changing your search or filter.
-          </p>
-        </div>
-      ) : (
-        <div className="bg-card border border-border rounded-xl overflow-visible">
-          {/* Table Header */}
-          <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_50px] gap-4 px-6 py-4 border-b border-border text-sm text-muted-foreground">
-            <span>Member</span>
-            <span>Role</span>
-            <span>Permissions</span>
-            <span></span>
-          </div>
-
-          {/* Table Rows */}
-          {filteredMembers.map((member) => {
-            const isOwner = member.role === "owner";
-            const isCurrentUser =
-              (member.user?._id || member.user?.id) === (user?._id || user?.id);
-            const isUpdating = updatingMember === member.user?._id;
-            const isRemoving = removingMember === member.user?._id;
-
-            return (
-              <div
-                key={member._id}
-                className="relative grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_50px] gap-4 items-center px-6 py-5 border-b border-border last:border-b-0"
-              >
-                {/* Member Details */}
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-full bg-primary/15 text-primary flex items-center justify-center font-semibold">
-                    {member.user?.username?.charAt(0)?.toUpperCase() || "?"}
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">
-                        {member.user?.username || "Unknown User"}
-                      </p>
-
-                      {isCurrentUser && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
-                          You
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-sm text-muted-foreground">
-                      {member.user?.email}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Role Badge */}
-                <div>
-                  <span
-                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
-                      member.role === "owner"
-                        ? "bg-primary/15 text-primary"
-                        : member.role === "admin"
-                        ? "bg-blue-500/15 text-blue-400"
-                        : "bg-secondary text-muted-foreground"
-                    }`}
-                  >
-                    {member.role === "owner" && (
-                      <Shield className="w-3.5 h-3.5" />
-                    )}
-                    {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-                  </span>
-                </div>
-
-                {/* Permissions Counter Button */}
-                <div>
-                  <button
-                    onClick={() => {
-                      setSelectedMember(member);
-                      // Open Manage modal if current user has permission AND target member isn't owner
-                      if (canManageMembers && !isOwner) {
-                        setIsManageModalOpen(true);
-                      } else {
-                        setIsViewModalOpen(true);
-                      }
-                    }}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary hover:bg-secondary/80 px-3 py-1.5 rounded-lg border border-border transition-colors cursor-pointer"
-                  >
-                    <UserCog className="w-4 h-4 text-primary" />
-                    <span>{member.permissions?.length || 0} permissions</span>
-                  </button>
-                </div>
-
-                {/* Actions Menu */}
-                <div className="relative flex justify-start md:justify-end">
-                  {(canManageMembers || canRemoveMembers) && !isOwner && (
-                    <button
-                      onClick={() =>
-                        setOpenMenu(
-                          openMenu === member.user?._id ? null : member.user?._id
-                        )
-                      }
-                      className="p-2 rounded-lg hover:bg-secondary transition cursor-pointer"
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {members.map((m) => (
+              <tr key={m._id} className="hover:bg-secondary/30 transition">
+                <td className="p-4 font-medium">
+                  {m.user?.username || "Unknown"}
+                  {m.user?._id === activeMembership?.user?._id && (
+                    <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                      You
+                    </span>
+                  )}
+                </td>
+                <td className="p-4 text-muted-foreground">
+                  {m.user?.email || "N/A"}
+                </td>
+                <td className="p-4">
+                  {hasPermission("ORG_MEMBER_UPDATE") && m.role !== "owner" ? (
+                    <select
+                      value={m.role}
+                      onChange={(e) => handleRoleChange(m.user?._id, e.target.value)}
+                      className="bg-secondary border border-border rounded p-1 text-sm outline-none focus:ring-1 focus:ring-primary"
                     >
-                      <MoreVertical className="w-5 h-5" />
-                    </button>
+                      <option value="member">Member</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  ) : (
+                    <span className="capitalize font-medium text-xs px-2.5 py-1 rounded-full bg-secondary border border-border">
+                      {m.role}
+                    </span>
                   )}
+                </td>
 
-                  {openMenu === member.user?._id && (
-                    <div className="absolute right-0 top-10 z-50 w-48 bg-card border border-border rounded-lg shadow-xl p-1">
-                      {canManageMembers && (
-                        <button
-                          disabled={isUpdating}
-                          onClick={() =>
-                            handleRoleChange(
-                              member,
-                              member.role === "admin" ? "member" : "admin"
-                            )
-                          }
-                          className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-left hover:bg-secondary disabled:opacity-50 cursor-pointer"
-                        >
-                          <UserCog className="w-4 h-4" />
-                          {isUpdating
-                            ? "Updating..."
-                            : member.role === "admin"
-                            ? "Make Member"
-                            : "Make Admin"}
-                        </button>
-                      )}
-
-                      {canRemoveMembers && (
-                        <button
-                          disabled={isRemoving}
-                          onClick={() => handleRemoveMember(member)}
-                          className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-left text-red-400 hover:bg-red-500/10 disabled:opacity-50 cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          {isRemoving ? "Removing..." : "Remove Member"}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Manage Permissions Modal */}
-      <ManagePermissionsModal
-        isOpen={isManageModalOpen}
-        onClose={() => setIsManageModalOpen(false)}
-        member={selectedMember}
-        orgId={selectedOrganisation._id}
-        onPermissionsUpdated={refreshOrganisations}
-      />
-
-      {/* View Permissions Modal */}
-      <ViewPermissionsModal
-        isOpen={isViewModalOpen}
-        onClose={() => setIsViewModalOpen(false)}
-        member={selectedMember}
-      />
+                {(hasPermission("ORG_MEMBER_UPDATE") || hasPermission("ORG_MEMBER_REMOVE")) && (
+                  <td className="p-4 text-right space-x-2">
+                    {hasPermission("ORG_MEMBER_REMOVE") && m.role !== "owner" && (
+                      <button
+                        onClick={() => handleRemoveMember(m.user?._id)}
+                        className="text-red-500 hover:text-red-600 text-xs px-3 py-1.5 rounded border border-red-500/20 hover:bg-red-500/10 transition"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

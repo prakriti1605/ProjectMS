@@ -3,7 +3,7 @@ import { useOrganisation } from "../context/OrganisationContext";
 import { useAuth } from "../context/AuthContext";
 import { projectApi } from "../api/project.api";
 import ProjectCard from "../components/project/ProjectCard";
-import CreateProjectModal from "../components/project/CreateProjectModal";
+import CreateProjectModal from "../components/project/modals/CreateProjectModal";
 
 export default function Projects() {
   const {

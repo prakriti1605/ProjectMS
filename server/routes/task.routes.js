@@ -29,7 +29,8 @@ router.get(
 router.post(
   "/:orgId/:projectId",
   protect,
-  checkProjectAccess,
+  checkOrganisationAccess,
+  // checkProjectAccess,
   requirePermission(PERMISSIONS.TASK_CREATE),
   createTask
 );
