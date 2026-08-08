@@ -35,14 +35,6 @@ export default function ProjectDetails() {
     project?.organisation?._id ||
     project?.organisation;
 
-  //   console.log("1. ProjectDetails State:", {
-  //   routeParams: params,
-  //   projectId,
-  //   orgIdVariable: orgId,
-  //   projectOrganisationField: project?.organisation,
-  //   selectedOrgFromContext: selectedOrganisation?._id,
-  // });
-
   const fetchProjectData = async () => {
     if (!projectId) return;
 

@@ -54,10 +54,12 @@ router.get(
 router.patch(
   "/:orgId/:projectId/:taskId",
   protect,
+  checkOrganisationAccess,   // <-- add this to set req.org
   checkTaskAccess,
   authorizeTaskUpdate,
   updateTask
 );
+
 
 router.patch(
   "/:taskId/status",

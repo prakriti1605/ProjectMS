@@ -2,6 +2,8 @@
 import Task from "../models/task.model.js";
 import mongoose from "mongoose";
 import { logActivity } from "../utils/actvityLogger.js";
+import OrganisationMember from "../models/organisationMember.model.js";
+
 
 export const createTask = async (req, res) => {
   try {
@@ -93,16 +95,20 @@ return res.json({ task });
 export const updateTask = async (req, res) => {
   try {
     const { task } = req;
-    const { title, description, status, priority, assignedTo, dueDate } = req.body;
 
-    // 1. Allow status updates so tasks can be reopened from "done"
-    if (task.status === "done" && (status === undefined || status === "done")) {
-      return res.status(403).json({
-        message: "Completed tasks are locked. Change status to reopen before editing details.",
-      });
-    }
+    // Body se fields extract karo
+    const {
+      title,
+      description,
+      status,
+      priority,
+      assignedTo,
+      dueDate,
+      phase,
+      phaseId,
+    } = req.body;
 
-    // Keep original values for audit logging
+    // Activity log ke liye purana state save karo
     const oldTask = {
       title: task.title,
       description: task.description,
@@ -110,9 +116,10 @@ export const updateTask = async (req, res) => {
       priority: task.priority,
       assignedTo: task.assignedTo?.toString(),
       dueDate: task.dueDate,
+      phase: task.phase?.toString(),
     };
 
-    // Update Title
+    // 1. Title
     if (title !== undefined) {
       if (typeof title !== "string" || !title.trim()) {
         return res.status(400).json({ message: "Title cannot be empty." });
@@ -120,40 +127,41 @@ export const updateTask = async (req, res) => {
       task.title = title.trim();
     }
 
-    // Update Description
+    // 2. Description
     if (description !== undefined) {
       task.description = description;
     }
 
-    // Update Status
+    // 3. Status
     if (status !== undefined) {
-      const statusEnum = task.schema.path("status")?.enumValues || [];
-      if (statusEnum.length > 0 && !statusEnum.includes(status)) {
-        return res.status(400).json({
-          message: `Invalid status. Allowed values: ${statusEnum.join(", ")}`,
-        });
-      }
       task.status = status;
     }
 
-    // Update Priority
+    // 4. Priority
     if (priority !== undefined) {
-      const priorityEnum = task.schema.path("priority")?.enumValues || [];
-      if (priorityEnum.length > 0 && !priorityEnum.includes(priority)) {
-        return res.status(400).json({
-          message: `Invalid priority. Allowed values: ${priorityEnum.join(", ")}`,
-        });
-      }
       task.priority = priority;
     }
 
-    // Update Assignee (Updated to check normalized OrganisationMember table)
+    // 5. Phase (Handles both "phase" or "phaseId" from frontend)
+    const targetPhase = phase !== undefined ? phase : phaseId;
+    if (targetPhase !== undefined) {
+      if (targetPhase === null || targetPhase === "") {
+        task.phase = undefined;
+      } else {
+        if (!mongoose.Types.ObjectId.isValid(targetPhase)) {
+          return res.status(400).json({ message: "Invalid phase ID." });
+        }
+        task.phase = targetPhase;
+      }
+    }
+
+    // 6. Assignee
     if (assignedTo !== undefined) {
       if (assignedTo === null || assignedTo === "") {
         task.assignedTo = undefined;
       } else {
         if (!mongoose.Types.ObjectId.isValid(assignedTo)) {
-          return res.status(400).json({ message: "Invalid user ID" });
+          return res.status(400).json({ message: "Invalid user ID." });
         }
 
         const isMember = await OrganisationMember.exists({
@@ -163,7 +171,7 @@ export const updateTask = async (req, res) => {
 
         if (!isMember) {
           return res.status(400).json({
-            message: "User is not a member of this organisation",
+            message: "User is not a member of this organisation.",
           });
         }
 
@@ -171,7 +179,7 @@ export const updateTask = async (req, res) => {
       }
     }
 
-    // Update Due Date
+    // 7. Due Date
     if (dueDate !== undefined) {
       if (dueDate === null || dueDate === "") {
         task.dueDate = undefined;
@@ -184,9 +192,12 @@ export const updateTask = async (req, res) => {
       }
     }
 
+    // Changes save karo
     await task.save();
 
-    // 2. Audit Trail & Activity Logging
+    // ==========================================
+    // ACTIVITY LOGGING
+    // ==========================================
     const changes = [];
 
     if (oldTask.title !== task.title) {
@@ -202,13 +213,23 @@ export const updateTask = async (req, res) => {
       changes.push(`priority changed to "${task.priority}"`);
     }
 
+    const newPhaseStr = task.phase?.toString();
+    if (oldTask.phase !== newPhaseStr) {
+      changes.push(newPhaseStr ? "moved to a new phase" : "removed from phase");
+    }
+
     const newAssignedTo = task.assignedTo?.toString();
     if (oldTask.assignedTo !== newAssignedTo) {
       changes.push(newAssignedTo ? "assigned member changed" : "task unassigned");
     }
 
-    const oldDueDate = oldTask.dueDate ? new Date(oldTask.dueDate).toISOString().split("T")[0] : undefined;
-    const newDueDate = task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : undefined;
+    const oldDueDate = oldTask.dueDate
+      ? new Date(oldTask.dueDate).toISOString().split("T")[0]
+      : undefined;
+    const newDueDate = task.dueDate
+      ? new Date(task.dueDate).toISOString().split("T")[0]
+      : undefined;
+
     if (oldDueDate !== newDueDate) {
       changes.push(newDueDate ? "due date changed" : "due date removed");
     }
@@ -229,7 +250,9 @@ export const updateTask = async (req, res) => {
     });
   } catch (err) {
     console.error("UPDATE TASK ERROR:", err);
-    return res.status(500).json({ message: err.message });
+    return res.status(500).json({
+      message: err.message || "Server error while updating task",
+    });
   }
 };
 

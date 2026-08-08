@@ -33,14 +33,14 @@ export const authorizeTaskUpdate = (req, res, next) => {
     });
   }
 
-  // Completed tasks are immutable.
-  if (task.status === "done") {
+  // Completed tasks are immutable
+  if (task.status?.toLowerCase() === "done" && req.body.status?.toLowerCase() === "done") {
     return res.status(403).json({
       message: "Completed tasks cannot be updated.",
     });
   }
 
-  const permissions = member.permissions || [];
+  const permissions = member?.permissions || [];
   const updates = Object.keys(req.body);
 
   if (updates.length === 0) {
@@ -49,31 +49,60 @@ export const authorizeTaskUpdate = (req, res, next) => {
     });
   }
 
-  // Members can ONLY update status of tasks assigned to themselves.
-  if (member.role === "member") {
-    const isAssignedToUser =
-      task.assignedTo &&
-      task.assignedTo.toString() === user._id.toString();
+  const isMemberRole = member?.role === "member";
+  const isAssignedToUser =
+    task.assignedTo &&
+    task.assignedTo.toString() === user._id.toString();
 
-    if (
-      permissions.includes("task:updateStatus") &&
-      isAssignedToUser &&
-      updates.length === 1 &&
-      updates[0] === "status"
-    ) {
-      return next();
+  // ========================================================
+  // RULE 1: Review -> Done Transition Check (Admin/Owner Only)
+  // ========================================================
+  if (req.body.status) {
+    const currentStatus = task.status?.toLowerCase();
+    const newStatus = req.body.status?.toLowerCase();
+
+    if (newStatus === "done" || newStatus === "completed") {
+      if (isMemberRole) {
+        return res.status(403).json({
+          message: "Only Admins and Owners can approve tasks to Done status.",
+        });
+      }
     }
-
-    return res.status(403).json({
-      message: "You can only update the status of tasks assigned to you.",
-    });
   }
 
-  // Admin / Owner permissions.
+  // ========================================================
+  // RULE 2: Regular Member Permissions Check
+  // ========================================================
+  if (isMemberRole) {
+    // Member can ONLY update status on tasks assigned to them
+    if (!isAssignedToUser) {
+      return res.status(403).json({
+        message: "You can only update tasks assigned to you.",
+      });
+    }
+
+    // Member can ONLY update status (no other fields like title, priority, assignee)
+    const isOnlyStatusUpdate = updates.length === 1 && updates[0] === "status";
+    const hasStatusPermission = permissions.includes("task:updateStatus");
+
+    if (!isOnlyStatusUpdate || !hasStatusPermission) {
+      return res.status(403).json({
+        message: "Members can only update the status of their assigned tasks.",
+      });
+    }
+
+    return next(); // Member status update authorized
+  }
+
+  // ========================================================
+  // RULE 3: Admin / Owner Field Permission Check
+  // ========================================================
   const fieldPermissions = {
     title: "task:updateDetails",
     description: "task:updateDetails",
     priority: "task:updateDetails",
+    phase: "task:updateDetails",      // ✅ FIX: Added support for phase
+    phaseId: "task:updateDetails",    // ✅ FIX: Added support for phaseId
     status: "task:updateStatus",
     assignedTo: "task:updateAssignee",
     dueDate: "task:updateDueDate",
