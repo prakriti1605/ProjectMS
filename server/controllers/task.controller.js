@@ -258,7 +258,10 @@ export const updateTask = async (req, res) => {
 
 export const deleteTask = async (req, res) => {
   try {
-    const task = await Task.findById(req.params.taskId);
+    const { taskId } = req.params;
+
+    // Safely retrieve task either from req.task (middleware) or DB query
+    const task = req.task || (await Task.findById(taskId));
 
     if (!task) {
       return res.status(404).json({
@@ -266,22 +269,35 @@ export const deleteTask = async (req, res) => {
       });
     }
 
-    await logActivity({
-      organisation: req.org._id,
-      project: task.project,
-      actor: req.user._id,
-      action: "TASK_DELETED",
-      message: `${req.user.username} deleted task "${task.title}"`,
-    });
+    // Delete task from DB
+    await Task.findByIdAndDelete(task._id || taskId);
 
-    await task.deleteOne();
+    // Safe Activity Log
+    try {
+      const orgId = req.org?._id || task.organisation || req.params.orgId;
+      const actorId = req.user?._id;
+
+      if (orgId && actorId) {
+        await logActivity({
+          organisation: orgId,
+          project: task.project,
+          actor: actorId,
+          action: "TASK_DELETED",
+          message: `${req.user?.username || "A user"} deleted task "${task.title}"`,
+        });
+      }
+    } catch (logErr) {
+      console.error("Activity logging failed on task deletion (non-fatal):", logErr);
+    }
 
     return res.json({
-      message: "Task deleted",
+      message: "Task deleted successfully",
+      taskId: task._id || taskId,
     });
   } catch (err) {
+    console.error("DELETE TASK CONTROLLER ERROR:", err);
     return res.status(500).json({
-      message: err.message,
+      message: err.message || "Server error while deleting task",
     });
   }
 };

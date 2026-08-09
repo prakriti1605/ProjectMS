@@ -9,7 +9,7 @@ import TaskDetailsModal from "../../tasks/modals/TaskDetailsModal";
 /**
  * TasksTab - Modular tab container that manages tasks, triaging, and task creation internally.
  */
-const TasksTab = ({ 
+const TasksTab = ({
   orgId, 
   projectId, 
   phases = [], 
@@ -31,6 +31,13 @@ const TasksTab = ({
   const [selectedTask, setSelectedTask] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
+  const sortedPhases = useMemo(() => {
+    return [...phases].sort((a, b) => {
+      const dateA = a?.startDate ? new Date(a.startDate).getTime() : 0;
+      const dateB = b?.startDate ? new Date(b.startDate).getTime() : 0;
+      return dateA - dateB;
+    });
+  }, [phases]);
 
   // 1. Fetch All Tasks & Organisation Members
   const fetchData = async () => {
@@ -155,6 +162,16 @@ const TasksTab = ({
     return { phaseGroupedTasks: phaseMap, floatingTasks: unallocated };
   }, [filteredTasks, phases]);
 
+  const handleTaskDeleted = (deletedTaskId) => {
+    // 1. Instant UI update: Filter out the deleted task from local array
+    setTasks((prevTasks) => prevTasks.filter((t) => t._id !== deletedTaskId));
+
+    // 2. Re-fetch fresh dataset from backend
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-neutral-400">
@@ -224,24 +241,38 @@ const TasksTab = ({
 
       {/* Accordion List Container */}
       <div className="space-y-4">
-        {/* 1. Phase Accordions */}
-        {phases.map((phase) => (
-          <PhaseAccordion
-            key={phase._id}
-            phase={phase}
-            tasks={phaseGroupedTasks[phase._id] || []}
-            onStatusChange={handleStatusChange}
-            onTaskClick={handleOpenTaskDetailsModal}
-            onAddTaskClick={handleOpenCreateModal}
-          />
-        ))}
+        {/* 1. Phase Accordions (Sorted chronologically by startDate) */}
+        {sortedPhases.map((phase) => {
+          // Extract & sort tasks for this phase chronologically by dueDate
+          const rawPhaseTasks = phaseGroupedTasks[phase._id] || [];
+          const sortedPhaseTasks = [...rawPhaseTasks].sort((a, b) => {
+            const dateA = a?.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+            const dateB = b?.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+            return dateA - dateB;
+          });
 
-        {/* 2. Unscheduled / Floating Tasks Accordion */}
+          return (
+            <PhaseAccordion
+              key={phase._id}
+              phase={phase}
+              tasks={sortedPhaseTasks}
+              onStatusChange={handleStatusChange}
+              onTaskClick={handleOpenTaskDetailsModal}
+              onAddTaskClick={handleOpenCreateModal}
+            />
+          );
+        })}
+
+        {/* 2. Unscheduled / Floating Tasks Accordion (Sorted by dueDate) */}
         {floatingTasks.length > 0 && (
           <PhaseAccordion
             key="unscheduled-floating"
             phase={null}
-            tasks={floatingTasks}
+            tasks={[...floatingTasks].sort((a, b) => {
+              const dateA = a?.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+              const dateB = b?.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+              return dateA - dateB;
+            })}
             onStatusChange={handleStatusChange}
             onTaskClick={handleOpenTaskDetailsModal}
             onAddTaskClick={handleOpenCreateModal}
@@ -249,13 +280,13 @@ const TasksTab = ({
         )}
       </div>
 
-      {/* 3. Modals rendered outside accordion container */}
+      {/* 3. Modals */}
       <CreateTaskModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         orgId={orgId}
         projectId={projectId}
-        phases={phases}
+        phases={sortedPhases}
         members={members}
         initialPhaseId={selectedPhaseId}
         onTaskCreated={fetchData}
@@ -267,9 +298,10 @@ const TasksTab = ({
         task={selectedTask}
         orgId={orgId}
         projectId={projectId}
-        phases={phases}
+        phases={sortedPhases} // 👈 Updated to sortedPhases for chronological dropdown options
         members={members}
         onTaskUpdated={fetchData}
+        onTaskDeleted={fetchData}
       />
     </div>
   );

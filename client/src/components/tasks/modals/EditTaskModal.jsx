@@ -119,8 +119,8 @@ export default function EditTaskModal({ isOpen, onClose, task, orgId, projectId,
                 className="w-full rounded-lg border border-white/10 bg-[#121212] px-3 py-2 text-sm text-white focus:border-orange-500 focus:outline-none"
               >
                 <option value="todo">Todo</option>
-                <option value="in-progress">In Progress</option>
-                <option value="review">Review</option>
+                <option value="in_progress">In Progress</option>
+                <option value="in_review">Review</option>
                 <option value="done">Done</option>
               </select>
             </div>

@@ -25,7 +25,7 @@ const phaseSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Pending", "In Progress", "Completed"],
+      enum: ["Scheduled", "In Progress", "Completed"],
       default: "In Progress",
     },
     progress: {
