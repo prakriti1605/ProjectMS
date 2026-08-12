@@ -13,6 +13,9 @@ export const OrganisationProvider = ({ children }) => {
   // Auth Context se authLoading aur user dono destructure karein
   const { user, loading: authLoading, setActiveMembership } = useAuth();
 
+
+// this function gets the list of all org that logged in user belongs to. 
+//it calls getMyOrgs controller which in turn chechks orgmemeber collection and then return the matched userid and orgids
   const refreshOrganisations = async () => {
     const token = localStorage.getItem("token");
     if (!token || !user) return [];
@@ -27,7 +30,7 @@ export const OrganisationProvider = ({ children }) => {
       return [];
     }
   };
-
+// ab once we have all the org list, we seelct one org. And this fn handles that. Ki abhi user kaun si org ko select karke kaam kar raha hai. 
   const selectOrganisation = async (org) => {
     if (!org?._id) return;
     setSelectedOrganisation(org);
@@ -36,7 +39,7 @@ export const OrganisationProvider = ({ children }) => {
       // Single Org Details & Member status load karke Auth Context sync karein
       const response = await orgApi.getById(org._id);
       if (response.data.member) {
-        setActiveMembership(response.data.member);
+        setActiveMembership(response.data.member);// once we have fetched org, we set membership status of the user. 
       }
     } catch (err) {
       console.error("Failed to set active membership:", err);
@@ -55,8 +58,9 @@ export const OrganisationProvider = ({ children }) => {
         
         // 2. Clear previous or set default organisation
         if (orgs.length > 0) {
-          // Check if previously selected org exists in current list
+          // Check if user previously selected an org 
           const savedOrgId = localStorage.getItem("selectedOrgId");
+          //if selected org exists in array reselect it otherwise set first org as selected org. 
           const found = orgs.find((o) => o._id === savedOrgId) || orgs[0];
           
           await selectOrganisation(found);

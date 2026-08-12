@@ -9,23 +9,38 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true); // 1. Track context loading state
   const [activeMembership, setActiveMembership] = useState(null);
 
-  // Initialize user session on initial app load
-  useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
+//mtlb jab app initially load hoga toh hum authcontext set karenge. agar localstorage mein user aur token hoga toh ussey restor ekarenge otherwise. Aur agar half baked data hoga ki suppose user hai but token nhi toh sab kuch reset. 
+useEffect(() => {
+  const savedUser = localStorage.getItem("user");
+  const token = localStorage.getItem("token");
+  const savedMembership = localStorage.getItem("activeMembership");
 
-    if (savedUser && token) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (err) {
-        console.error("Failed to parse stored user", err);
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
+  if (savedUser && token) {
+    try {
+      setUser(JSON.parse(savedUser));
+      if (savedMembership) {
+        setActiveMembership(JSON.parse(savedMembership));
       }
+    } catch (err) {
+      console.error("Failed to parse stored session", err);
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      localStorage.removeItem("activeMembership");
     }
-    setLoading(false); // 2. Done checking localStorage
-  }, []);
+  }
+  setLoading(false);
+}, []);
 
+// 2. Helper function to update state + localStorage together
+const updateActiveMembership = (membershipData) => {
+  if (membershipData) {
+    localStorage.setItem("activeMembership", JSON.stringify(membershipData));
+  } else {
+    localStorage.removeItem("activeMembership");
+  }
+  setActiveMembership(membershipData);
+};
+// ye login fn, jab login execute hoga aur backend response bhejega toh uss response ko local storage mein set kar denge.
   const login = async (formData) => {
     const response = await api.post("/auth/login", formData);
     const { user: userData, token } = response.data;
@@ -37,6 +52,8 @@ export const AuthProvider = ({ children }) => {
     }
     return response.data;
   };
+  // same for register. yaha register hoke aap directly access kar rahe ho, dashboard ko, you dont need to login again. 
+
   const register = async (formData) => {
   const response = await api.post("/auth/register", formData);
   const { user: userData, token } = response.data;
@@ -48,7 +65,7 @@ export const AuthProvider = ({ children }) => {
   }
   return response.data;
 };
-
+//logout ke time sab kuch localstorage se remove kar denge. 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -56,7 +73,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setActiveMembership(null);
   };
-
+//most important. this function is used by several components.It checks for permissions in the activemembership. 
   const hasPermission = (permissionKey) => {
     if (!activeMembership) return false;
     if (activeMembership.role === "owner") return true;

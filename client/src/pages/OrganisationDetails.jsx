@@ -7,10 +7,10 @@ import { Settings } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export default function OrganisationDetails() {
-  const { id } = useParams();
+  const { id } = useParams(); //read orgId from url
   const navigate = useNavigate();
 
-  // Grab active session context from AuthContext
+  // what is th role of user logged in. Is he member, admin or owner, and what are his permissions.
   const { setActiveMembership, hasPermission } = useAuth();
 
   const [org, setOrg] = useState(null);

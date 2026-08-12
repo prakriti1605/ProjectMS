@@ -1,9 +1,11 @@
+
 import { useEffect, useState } from "react";
 import { orgApi } from "../api/org.api";
 import { useNavigate } from "react-router-dom";
 import OrgCard from "../components/OrgCard";
 import { useOrganisation } from "../context/OrganisationContext";
 
+//ye bass org select karne ke liye hai
 export default function Organisations() {
   const navigate = useNavigate();
   const { selectOrganisation } = useOrganisation();
