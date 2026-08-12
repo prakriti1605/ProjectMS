@@ -6,7 +6,8 @@ export const orgApi = {
   getAll: () => api.get("/org"),
   getById: (id) => api.get(`/org/${id}`),
   joinOrganisation: (joinCode) => api.post("/org/join", { joinCode }),
-
+  updateorg: (orgId, data) => api.patch(`/org/${orgId}`, data),
+  deleteorg:(orgId) => api.delete(`/org/${orgId}`),
   // Join Code endpoint
   generateJoinCode: (orgId) => api.post(`/org/${orgId}/join-code`),
 

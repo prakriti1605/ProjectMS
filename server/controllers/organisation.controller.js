@@ -38,14 +38,40 @@ export const createOrg = async (req, res) => {
 // 2. GET ALL ORGANISATIONS FOR CURRENT USER
 export const getMyOrgs = async (req, res) => {
   try {
+    // 1. Fetch user's memberships and populate organisation (Your original logic)
     const memberships = await OrganisationMember.find({ user: req.user._id })
-      .populate("organisation");
+      .populate("organisation"); // [cite: 723, 732]
 
-    const orgs = memberships.map((m) => m.organisation).filter(Boolean);
+    const rawOrgs = memberships.map((m) => m.organisation).filter(Boolean); // [cite: 724, 735, 736]
 
-    return res.status(200).json({ organisations: orgs });
+    // 2. Safely attach memberCount and ownerName to each org document
+    const orgs = await Promise.all(
+      rawOrgs.map(async (org) => {
+        const orgObj = org.toObject ? org.toObject() : { ...org };
+
+        // Count total members in this organisation
+        const memberCount = await OrganisationMember.countDocuments({ 
+          organisation: org._id 
+        });
+
+        // Find the owner record and populate the username
+        const ownerMembership = await OrganisationMember.findOne({
+          organisation: org._id,
+          role: "owner",
+        }).populate("user", "username");
+
+        return {
+          ...orgObj,
+          memberCount: memberCount || 0,
+          ownerName: ownerMembership?.user?.username || "Owner Unassigned",
+        };
+      })
+    );
+
+    // 3. Return the exact same response structure as before
+    return res.status(200).json({ organisations: orgs }); // [cite: 724, 738]
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message }); // [cite: 724, 739]
   }
 };
 
@@ -203,18 +229,42 @@ export const getOrgMembers = async (req, res) => {
 // 8. UPDATE ORGANISATION DETAILS
 export const updateOrganisation = async (req, res) => {
   try {
+    const { orgId } = req.params;
     const { name, description } = req.body;
 
-    if (name !== undefined) req.org.name = name.trim();
-    if (description !== undefined) req.org.description = description.trim();
-    await req.org.save();
+    // 1. Build dynamic update payload (only include fields passed in req.body)
+    const updateFields = {};
+    if (name !== undefined && name.trim() !== "") {
+      updateFields.name = name.trim();
+    }
+    if (description !== undefined) {
+      updateFields.description = description.trim();
+    }
 
-    return res.json({
+    // 2. Safeguard: ensure at least one field is being updated
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).json({ 
+        message: "Please provide at least one field (name or description) to update." 
+      });
+    }
+
+    // 3. Atomically update only supplied fields
+    const updatedOrg = await Organisation.findByIdAndUpdate(
+      orgId,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedOrg) {
+      return res.status(404).json({ message: "Organisation not found" });
+    }
+
+    return res.status(200).json({
       message: "Organisation updated successfully",
-      org: req.org,
+      organisation: updatedOrg,
     });
-  } catch (err) {
-    return res.status(500).json({ message: err.message });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };
 
