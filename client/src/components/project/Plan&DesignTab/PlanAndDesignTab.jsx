@@ -3,9 +3,9 @@ import { Plus, AlertCircle, X } from "lucide-react";
 import { projectApi } from "../../../api/project.api";
 import { toInputDate } from "../../../utils/dateUtils";
 
-import ProjectTimelineHeader from "../plan/ProjectTimelineHeader";
-import PhaseListCard from "../plan/PhaseListCard";
-import GanttChartOverview from "../plan/GanttChartOverview";
+import ProjectTimelineHeader from "./ProjectTimelineHeader";
+import PhaseListCard from "./PhaseListCard";
+import GanttChartOverview from "./GanttChartOverview";
 
 export default function PlanAndDesignTab({
   project,

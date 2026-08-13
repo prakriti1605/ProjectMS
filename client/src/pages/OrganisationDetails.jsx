@@ -5,13 +5,16 @@ import { projectApi } from "../api/project.api";
 import ProjectCard from "../components/project/ProjectCard";
 import { Settings } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-
+import { useOrganisation } from "../context/OrganisationContext";
 export default function OrganisationDetails() {
   const { id } = useParams(); //read orgId from url
   const navigate = useNavigate();
 
   // what is th role of user logged in. Is he member, admin or owner, and what are his permissions.
   const { setActiveMembership, hasPermission } = useAuth();
+  const { selectedOrganisation } = useOrganisation();
+  
+  const effectiveOrgId = selectedOrganisation?._id || id;
 
   const [org, setOrg] = useState(null);
   const [projects, setProjects] = useState([]);
@@ -27,20 +30,20 @@ export default function OrganisationDetails() {
     description: "",
   });
 
-  const fetchData = async () => {
+const fetchData = async () => {
+    if (!effectiveOrgId) return;
+
     try {
       setLoading(true);
 
       const [orgRes, projectRes] = await Promise.all([
-        orgApi.getById(id),
-        projectApi.getByOrg(id),
+        orgApi.getById(effectiveOrgId),
+        projectApi.getByOrg(effectiveOrgId),
       ]);
 
-      // Handle backend response format from Phase 3
       setOrg(orgRes.data.org || orgRes.data.organisation || orgRes.data);
       setProjects(projectRes.data.projects || projectRes.data);
 
-      // STEP 2: Save active member permissions in global AuthContext!
       if (orgRes.data.member) {
         setActiveMembership(orgRes.data.member);
       }
@@ -53,9 +56,10 @@ export default function OrganisationDetails() {
     }
   };
 
+  // 5️⃣ Listen to effectiveOrgId so it refetches automatically on Topbar switch
   useEffect(() => {
     fetchData();
-  }, [id]);
+  }, [effectiveOrgId]);
 
   const openCreateModal = () => {
     setProjectError("");
@@ -142,31 +146,32 @@ export default function OrganisationDetails() {
       </div>
 
       {/* Projects */}
-      <div className="mt-10">
-        <div className="flex justify-between items-center mb-5">
-          <h2 className="text-2xl font-semibold text-white">Projects</h2>
+      {/* Projects Section */}
+<div className="mt-8">
+  <h2 className="text-xl font-bold text-white mb-4">Projects</h2>
 
-          {/* Render + New Project button ONLY if user has permission */}
-          {canCreateProject && (
-            <button
-              onClick={openCreateModal}
-              className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:opacity-90"
-            >
-              + New Project
-            </button>
-          )}
-        </div>
-
-        {projects.length === 0 ? (
-          <div className="text-muted-foreground">No projects yet</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl">
-            {projects.map((project) => (
-              <ProjectCard key={project._id} project={project} orgId={id} />
-            ))}
-          </div>
-        )}
-      </div>
+  {projects.length === 0 ? (
+    <div className="text-muted-foreground text-sm bg-neutral-900 border border-neutral-800 rounded-xl p-6 text-center">
+      No projects found in this organisation.
+    </div>
+  ) : (
+    /* 🎯 Changed gap-8 and 2-col to match the 3-column layout of Projects page */
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {projects.map((project) => (
+        <ProjectCard 
+          key={project._id} 
+          project={{
+            ...project,
+            // Ensure title fallback if API returns name vs title
+            name: project.name || project.title || "Untitled Project",
+            description: project.description || "",
+          }} 
+          orgId={id} 
+        />
+      ))}
+    </div>
+  )}
+</div>
 
       {/* Create Project Modal */}
       {showProjectModal && (
