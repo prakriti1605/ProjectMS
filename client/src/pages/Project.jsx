@@ -11,7 +11,7 @@ export default function Projects() {
     loading: organisationLoading,
   } = useOrganisation();
 
-  const { user } = useAuth();
+  const { user,hasPermission } = useAuth();
 
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -26,11 +26,7 @@ export default function Projects() {
       member.user?.email === user?.email
   );
 
-const canCreateProject =
-  currentMember?.permissions?.includes(
-    "project:create"
-  ) ?? false;
-
+const canCreateProject = hasPermission("project:create");
 
   useEffect(() => {
     const fetchProjects = async () => {
