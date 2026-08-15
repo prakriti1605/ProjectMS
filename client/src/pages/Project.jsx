@@ -77,8 +77,6 @@ const canCreateProject =
 
       setShowCreateModal(false);
 
-      // Refetch projects so the newly created project
-      // appears immediately
       const response = await projectApi.getByOrg(
         selectedOrganisation._id
       );

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Search, Filter, Plus, Loader2, AlertCircle } from "lucide-react";
-import TasksTriageBar from "../../tasks/TasksTriageBar";
-import PhaseAccordion from "../../tasks/PhaseAccordion";
-import CreateTaskModal from "../../tasks/modals/CreateTaskModal";
-import { taskApi } from "../../../api/task.api";
-import { orgApi } from "../../../api/org.api"; 
-import TaskDetailsModal from "../../tasks/modals/TaskDetailsModal";
+import TasksTriageBar from "./TasksTriageBar";
+import PhaseAccordion from "./PhaseAccordion";
+import CreateTaskModal from "./modals/CreateTaskModal";
+import { taskApi } from "../../api/task.api";
+import { orgApi } from "../../api/org.api"; 
+import TaskDetailsModal from "./modals/TaskDetailsModal";
 /**
  * TasksTab - Modular tab container that manages tasks, triaging, and task creation internally.
  */

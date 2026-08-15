@@ -7,7 +7,7 @@ import { useOrganisation } from "../context/OrganisationContext";
 
 import { Kanban, Calendar, Users, BarChart3 } from "lucide-react";
 
-import TasksTab from "../components/project/tabs/TasksTab";
+import TasksTab from "../components/tasks/TasksTab";
 import PlanAndDesignTab from "../components/project/Plan&DesignTab/PlanAndDesignTab";
 import WorkloadTab from "../components/project/WorkloadTab/WorkloadTab";
 import InsightsTab from "../components/project/InsightsTab/InsightsTab";
