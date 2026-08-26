@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  # ── JOB 1: Dependency & Build Validation ──
+  # ── JOB 1: Code & Build Validation ──
   validate-and-build:
     name: Code & Build Validation
     runs-on: ubuntu-latest
@@ -16,20 +16,16 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js runtime (v18)
+      - name: Setup Node.js runtime (v20)
         uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: 'npm'
-          cache-dependency-path: |
-            server/package-lock.json
-            client/package-lock.json
+          node-version: 20
 
-      # 1. Validate Backend Syntax & Dependencies
+      # 1. Validate Backend
       - name: Install & Validate Backend
         run: |
           cd server
-          npm ci
+          npm install --no-audit --prefer-offline
           node -e "console.log('Backend syntax validated successfully');"
 
       # 2. Validate & Build Frontend Production Bundle
@@ -38,10 +34,10 @@ jobs:
           VITE_API_URL: https://project-mgmnt-eu2f.onrender.com/api
         run: |
           cd client
-          npm ci
+          npm install --no-audit --prefer-offline
           npm run build
 
-  # ── JOB 2: Docker Container Build Test ──
+  # ── JOB 2: Docker Container Image Validation ──
   docker-validation:
     name: Docker Container Image Validation
     needs: validate-and-build
