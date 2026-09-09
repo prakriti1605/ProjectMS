@@ -50,15 +50,35 @@ export default function TaskDetailsModal({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const getChangedFields = () => {
+    const original = {
+      title: task.title || "",
+      description: task.description || "",
+      status: task.status || "todo",
+      priority: task.priority || "medium",
+      phase: task.phase?._id || task.phase || "",
+      assignedTo: task.assignedTo?._id || task.assignedTo || "",
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
+    };
+
+    return Object.fromEntries(
+      Object.entries(formData).filter(([field, value]) => value !== original[field])
+    );
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
       setError("");
 
-      await taskApi.update(orgId, projectId, task._id, formData);
+      const changes = getChangedFields();
 
-      if (onTaskUpdated) onTaskUpdated();
+      if (Object.keys(changes).length > 0) {
+        await taskApi.update(orgId, projectId, task._id, changes);
+        if (onTaskUpdated) onTaskUpdated();
+      }
+
       onClose();
     } catch (err) {
       console.error("Error updating task:", err);

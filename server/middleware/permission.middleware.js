@@ -24,19 +24,45 @@ export const requirePermission = (permission) => {
     }
   };
 };
+const TASK_FIELD_ALIASES = {
+  phaseId: "phase",
+};
+
+const normaliseTaskValue = (field, value) => {
+  if (value === undefined || value === null || value === "") return null;
+
+  if (field === "dueDate") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toISOString().split("T")[0];
+  }
+
+  if (typeof value === "object" && value._id) {
+    return value._id.toString();
+  }
+
+  const stringValue = value.toString();
+
+  return field === "status" || field === "priority"
+    ? stringValue.toLowerCase()
+    : stringValue;
+};
+
+const getChangedTaskFields = (task, body) =>
+  Object.keys(body).filter((field) => {
+    const taskField = TASK_FIELD_ALIASES[field] || field;
+
+    return (
+      normaliseTaskValue(taskField, task[taskField]) !==
+      normaliseTaskValue(taskField, body[field])
+    );
+  });
+
 export const authorizeTaskUpdate = (req, res, next) => {
   const { task, member, user } = req;
 
   if (!task) {
     return res.status(404).json({
       message: "Task not found",
-    });
-  }
-
-  // Completed tasks are immutable
-  if (task.status?.toLowerCase() === "done" && req.body.status?.toLowerCase() === "done") {
-    return res.status(403).json({
-      message: "Completed tasks cannot be updated.",
     });
   }
 
@@ -49,6 +75,22 @@ export const authorizeTaskUpdate = (req, res, next) => {
     });
   }
 
+  const changedFields = getChangedTaskFields(task, req.body);
+
+  // Nothing actually changes, so no permission is required
+  if (changedFields.length === 0) {
+    return next();
+  }
+
+  const statusChanged = changedFields.includes("status");
+
+  // Completed tasks are immutable until they are moved out of "done"
+  if (task.status?.toLowerCase() === "done" && !statusChanged) {
+    return res.status(403).json({
+      message: "Completed tasks cannot be updated.",
+    });
+  }
+
   const isMemberRole = member?.role === "member";
   const isAssignedToUser =
     task.assignedTo &&
@@ -57,8 +99,7 @@ export const authorizeTaskUpdate = (req, res, next) => {
   // ========================================================
   // RULE 1: Review -> Done Transition Check (Admin/Owner Only)
   // ========================================================
-  if (req.body.status) {
-    const currentStatus = task.status?.toLowerCase();
+  if (statusChanged) {
     const newStatus = req.body.status?.toLowerCase();
 
     if (newStatus === "done" || newStatus === "completed") {
@@ -82,7 +123,8 @@ export const authorizeTaskUpdate = (req, res, next) => {
     }
 
     // Member can ONLY update status (no other fields like title, priority, assignee)
-    const isOnlyStatusUpdate = updates.length === 1 && updates[0] === "status";
+    const isOnlyStatusUpdate =
+      changedFields.length === 1 && changedFields[0] === "status";
     const hasStatusPermission = permissions.includes("task:updateStatus");
 
     if (!isOnlyStatusUpdate || !hasStatusPermission) {
@@ -108,7 +150,7 @@ export const authorizeTaskUpdate = (req, res, next) => {
     dueDate: "task:updateDueDate",
   };
 
-  for (const field of updates) {
+  for (const field of changedFields) {
     const requiredPermission = fieldPermissions[field];
 
     if (!requiredPermission) {
