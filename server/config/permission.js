@@ -1,0 +1,31 @@
+// ye file ye bata rahi hai ki humare pass kaun kaun si permissions hai. Mtlb suppose owner khud ki ek permission bana de "allow_everything". Toh ab ye valid thodi hoga.
+
+export const PERMISSIONS = {
+
+    // Project
+    PROJECT_CREATE: "project:create",
+    PROJECT_UPDATE: "project:update",
+    PROJECT_DELETE: "project:delete",
+
+    // Task
+    TASK_CREATE: "task:create",
+
+    // TASK_UPDATE: "task:update", // temporary during migration
+
+    TASK_UPDATE_DETAILS: "task:updateDetails",
+    TASK_UPDATE_STATUS: "task:updateStatus",
+    TASK_UPDATE_ASSIGNEE: "task:updateAssignee",
+    TASK_UPDATE_DUE_DATE: "task:updateDueDate",
+
+    TASK_DELETE: "task:delete",
+
+    // Member
+    MEMBER_INVITE: "member:invite",
+    MEMBER_REMOVE: "member:remove",
+    MEMBER_UPDATE_PERMISSIONS: "member:updatePermissions",
+
+    // Organisation
+    ORG_UPDATE: "org:update",
+    ORG_DELETE: "org:delete",
+    ORG_JOIN_CODE_MANAGE: "org:joinCodeManage",
+};
