@@ -1,11 +1,27 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { orgApi } from "../api/org.api";
 import { projectApi } from "../api/project.api";
+import { queryKeys } from "../api/queryKeys";
 import ProjectCard from "../components/project/ProjectCard";
 import { Settings } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useOrganisation } from "../context/OrganisationContext";
+
+const loadOrganisationDetails = async (organisationId) => {
+  const [orgRes, projectRes] = await Promise.all([
+    orgApi.getById(organisationId),
+    projectApi.getByOrg(organisationId),
+  ]);
+
+  return {
+    org: orgRes.data.org || orgRes.data.organisation || orgRes.data,
+    projects: projectRes.data.projects || projectRes.data,
+    member: orgRes.data.member,
+  };
+};
+
 export default function OrganisationDetails() {
   const { id } = useParams(); //read orgId from url
   const navigate = useNavigate();
@@ -13,13 +29,16 @@ export default function OrganisationDetails() {
   // what is th role of user logged in. Is he member, admin or owner, and what are his permissions.
   const { setActiveMembership, hasPermission } = useAuth();
   const { selectedOrganisation } = useOrganisation();
+  const queryClient = useQueryClient();
   
   const effectiveOrgId = selectedOrganisation?._id || id;
 
-  const [org, setOrg] = useState(null);
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const organisationDetailsQuery = useQuery({
+    queryKey: queryKeys.organisationDetails(effectiveOrgId),
+    queryFn: () => loadOrganisationDetails(effectiveOrgId),
+    enabled: Boolean(effectiveOrgId),
+    staleTime: 60_000,
+  });
 
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [creatingProject, setCreatingProject] = useState(false);
@@ -30,36 +49,18 @@ export default function OrganisationDetails() {
     description: "",
   });
 
-const fetchData = async () => {
-    if (!effectiveOrgId) return;
-
-    try {
-      setLoading(true);
-
-      const [orgRes, projectRes] = await Promise.all([
-        orgApi.getById(effectiveOrgId),
-        projectApi.getByOrg(effectiveOrgId),
-      ]);
-
-      setOrg(orgRes.data.org || orgRes.data.organisation || orgRes.data);
-      setProjects(projectRes.data.projects || projectRes.data);
-
-      if (orgRes.data.member) {
-        setActiveMembership(orgRes.data.member);
-      }
-
-      setError("");
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to load data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 5️⃣ Listen to effectiveOrgId so it refetches automatically on Topbar switch
   useEffect(() => {
-    fetchData();
-  }, [effectiveOrgId]);
+    if (organisationDetailsQuery.data?.member) {
+      setActiveMembership(organisationDetailsQuery.data.member);
+    }
+  }, [organisationDetailsQuery.data?.member, setActiveMembership]);
+
+  const org = organisationDetailsQuery.data?.org || null;
+  const projects = organisationDetailsQuery.data?.projects || [];
+  const loading = organisationDetailsQuery.isPending;
+  const error = organisationDetailsQuery.isError
+    ? organisationDetailsQuery.error?.response?.data?.message || "Failed to load data"
+    : "";
 
   const openCreateModal = () => {
     setProjectError("");
@@ -87,7 +88,7 @@ const fetchData = async () => {
     try {
       setCreatingProject(true);
 
-      await projectApi.create(id, {
+      await projectApi.create(effectiveOrgId, {
         name: projectForm.name.trim(),
         description: projectForm.description.trim(),
       });
@@ -98,7 +99,14 @@ const fetchData = async () => {
         description: "",
       });
 
-      fetchData();
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.organisationDetails(effectiveOrgId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.projects(effectiveOrgId),
+        }),
+      ]);
     } catch (err) {
       setProjectError(
         err.response?.data?.message || "Failed to create project."

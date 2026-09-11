@@ -55,6 +55,14 @@ export default function OrganisationSettings() {
       const updatedOrg = response.data.organisation || response.data.org || response.data;
 
       queryClient.setQueryData(queryKeys.organisation(id), updatedOrg);
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.organisationDetails(id),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.organisations,
+        }),
+      ]);
       setName(updatedOrg.name || "");
       setDescription(updatedOrg.description || "");
 

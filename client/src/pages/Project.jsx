@@ -53,6 +53,9 @@ const canCreateProject = hasPermission("project:create");
       await queryClient.invalidateQueries({
         queryKey: queryKeys.projects(selectedOrganisation._id),
       });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.organisationDetails(selectedOrganisation._id),
+      });
     } catch (error) {
       console.error(
         "Failed to create project:",

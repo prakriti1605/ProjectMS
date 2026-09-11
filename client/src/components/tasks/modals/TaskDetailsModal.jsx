@@ -13,9 +13,11 @@ export default function TaskDetailsModal({
   members = [],
   onTaskUpdated,
   onTaskDeleted,
+  statusOnly = false,
 }) {
   const { activeMembership } = useAuth();
   const isMember = activeMembership?.role === "member";
+  const isRestrictedEditor = statusOnly || isMember;
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -59,7 +61,7 @@ export default function TaskDetailsModal({
       setLoading(true);
       setError("");
 
-      if (isMember) {
+      if (isRestrictedEditor) {
         await taskApi.updateStatus(task._id, { status: formData.status });
       } else {
         await taskApi.update(orgId, projectId, task._id, formData);
@@ -100,11 +102,11 @@ export default function TaskDetailsModal({
 };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-      <div className="w-full max-w-xl rounded-xl border border-white/10 bg-[#1E1E24] p-6 text-white shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-xl rounded-xl border border-border bg-card p-6 text-foreground shadow-2xl">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
-          <span className="text-xs font-mono text-gray-400 bg-white/5 px-2.5 py-1 rounded-md border border-white/10">
+        <div className="mb-4 flex items-center justify-between border-b border-border pb-4">
+          <span className="rounded-md border border-border bg-secondary px-2.5 py-1 font-mono text-xs text-muted-foreground">
             Task Details
           </span>
 
@@ -112,8 +114,8 @@ export default function TaskDetailsModal({
             <button
               type="button"
               onClick={() => setShowDeleteConfirm((prev) => !prev)}
-              disabled={isMember}
-              className="rounded p-1.5 text-gray-400 hover:bg-red-500/10 hover:text-red-400 transition"
+              disabled={isRestrictedEditor}
+              className="rounded p-1.5 text-muted-foreground transition hover:bg-red-500/10 hover:text-red-400"
               title="Delete Task"
             >
               <Trash2 className="h-5 w-5" />
@@ -121,7 +123,7 @@ export default function TaskDetailsModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded p-1.5 text-gray-400 hover:bg-white/10 hover:text-white transition"
+              className="rounded p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
             >
               <X className="h-5 w-5" />
             </button>
@@ -135,15 +137,15 @@ export default function TaskDetailsModal({
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>Delete Task?</span>
             </div>
-            <p className="mt-1 text-gray-300">
-              Are you sure you want to delete <strong className="text-white">"{task.title}"</strong>? This action cannot be undone.
+            <p className="mt-1 text-foreground">
+              Are you sure you want to delete <strong>"{task.title}"</strong>? This action cannot be undone.
             </p>
 
             <div className="mt-3 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="rounded px-3 py-1.5 font-medium text-gray-300 hover:bg-white/10"
+                className="rounded px-3 py-1.5 font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
               >
                 Cancel
               </button>
@@ -169,40 +171,40 @@ export default function TaskDetailsModal({
         <form onSubmit={handleSave} className="space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-xs font-mono text-gray-400 mb-1">Title</label>
+            <label className="mb-1 block font-mono text-xs text-muted-foreground">Title</label>
             <input
               type="text"
               name="title"
               value={formData.title}
               onChange={handleChange}
-              disabled={isMember}
-              className="w-full rounded-lg border border-white/10 bg-[#121212] px-4 py-2.5 text-sm text-white focus:border-orange-500 focus:outline-none"
+              disabled={isRestrictedEditor}
+              className="w-full rounded-lg border border-border bg-input px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-mono text-gray-400 mb-1">Description</label>
+            <label className="mb-1 block font-mono text-xs text-muted-foreground">Description</label>
             <textarea
               name="description"
               rows="3"
               value={formData.description}
               onChange={handleChange}
-              disabled={isMember}
+              disabled={isRestrictedEditor}
               placeholder="Add description..."
-              className="w-full rounded-lg border border-white/10 bg-[#121212] px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:border-orange-500 focus:outline-none"
+              className="w-full rounded-lg border border-border bg-input px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
             />
           </div>
 
           {/* Status & Priority */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1">Status</label>
+              <label className="mb-1 block font-mono text-xs text-muted-foreground">Status</label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-white/10 bg-[#121212] px-3 py-2.5 text-sm text-white focus:border-orange-500 focus:outline-none"
+                className="w-full rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
               >
                 <option value="todo">To Do</option>
                 <option value="in_progress">In Progress</option>
@@ -212,13 +214,13 @@ export default function TaskDetailsModal({
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1">Priority</label>
+              <label className="mb-1 block font-mono text-xs text-muted-foreground">Priority</label>
               <select
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                disabled={isMember}
-                className="w-full rounded-lg border border-white/10 bg-[#121212] px-3 py-2.5 text-sm text-white focus:border-orange-500 focus:outline-none"
+                disabled={isRestrictedEditor}
+                className="w-full rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -230,13 +232,13 @@ export default function TaskDetailsModal({
           {/* Phase & Assignee */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1">Phase</label>
+              <label className="mb-1 block font-mono text-xs text-muted-foreground">Phase</label>
               <select
                 name="phase"
                 value={formData.phase}
                 onChange={handleChange}
-                disabled={isMember}
-                className="w-full rounded-lg border border-white/10 bg-[#121212] px-3 py-2.5 text-sm text-white focus:border-orange-500 focus:outline-none"
+                disabled={isRestrictedEditor}
+                className="w-full rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
               >
                 <option value="">Unassigned Phase</option>
                 {phases.map((p) => (
@@ -248,13 +250,13 @@ export default function TaskDetailsModal({
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1">Assignee</label>
+              <label className="mb-1 block font-mono text-xs text-muted-foreground">Assignee</label>
               <select
                 name="assignedTo"
                 value={formData.assignedTo}
                 onChange={handleChange}
-                disabled={isMember}
-                className="w-full rounded-lg border border-white/10 bg-[#121212] px-3 py-2.5 text-sm text-white focus:border-orange-500 focus:outline-none"
+                disabled={isRestrictedEditor}
+                className="w-full rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
               >
                 <option value="">Unassigned</option>
                 {members.map((m) => {
@@ -271,30 +273,30 @@ export default function TaskDetailsModal({
 
           {/* Due Date */}
           <div>
-            <label className="block text-xs font-mono text-gray-400 mb-1">Due Date</label>
+            <label className="mb-1 block font-mono text-xs text-muted-foreground">Due Date</label>
             <input
               type="date"
               name="dueDate"
               value={formData.dueDate}
               onChange={handleChange}
-              disabled={isMember}
-              className="w-full rounded-lg border border-white/10 bg-[#121212] px-3 py-2.5 text-sm text-white focus:border-orange-500 focus:outline-none [color-scheme:dark]"
+              disabled={isRestrictedEditor}
+              className="w-full rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
             />
           </div>
 
           {/* Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+          <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-gray-300 hover:bg-white/5"
+              className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="rounded-lg bg-orange-600 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-500 disabled:opacity-50"
+              className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {loading ? "Saving..." : "Save Changes"}
             </button>

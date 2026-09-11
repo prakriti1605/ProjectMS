@@ -24,7 +24,7 @@ const TaskRow = ({ task, onStatusChange, onTaskClick }) => {
       case "low":
         return "bg-blue-500/10 text-blue-400 border-blue-500/30";
       default:
-        return "bg-neutral-800 text-neutral-400 border-neutral-700";
+        return "bg-secondary text-muted-foreground border-border";
     }
   };
 
@@ -38,7 +38,7 @@ const TaskRow = ({ task, onStatusChange, onTaskClick }) => {
       case "in_progress":
         return "bg-blue-500/10 text-blue-400";
       default:
-        return "bg-neutral-800 text-neutral-400";
+        return "bg-secondary text-muted-foreground";
     }
   };
 
@@ -83,7 +83,7 @@ const TaskRow = ({ task, onStatusChange, onTaskClick }) => {
           e.stopPropagation();
           onStatusChange(task._id, task.status === "todo" ? "in_progress" : "in_review");
         }}
-        className="text-neutral-500 hover:text-neutral-300 transition-colors p-1"
+        className="p-1 text-muted-foreground transition-colors hover:text-foreground"
         title="Advance Status"
       >
         <Circle className="w-5 h-5" />
@@ -111,7 +111,7 @@ const TaskRow = ({ task, onStatusChange, onTaskClick }) => {
         console.log("type of onTaskClick", typeof onTaskClick);
         if(onTaskClick) onTaskClick(task);
       } }
-      className="group flex items-center justify-between px-4 py-3 bg-neutral-900/40 hover:bg-neutral-800/50 border-b border-neutral-800/60 transition-all cursor-pointer text-sm"
+      className="group flex cursor-pointer items-center justify-between border-b border-border bg-card px-4 py-3 text-sm transition-colors hover:bg-secondary/60"
     >
       {/* Left: Checkbox / Status & Title */}
       <div className="flex items-center space-x-3 flex-1 min-w-0 pr-4">
@@ -120,8 +120,8 @@ const TaskRow = ({ task, onStatusChange, onTaskClick }) => {
         <span
           className={`font-medium truncate transition-colors ${
             task.status === "done"
-              ? "line-through text-neutral-500"
-              : "text-neutral-200 group-hover:text-white"
+              ? "line-through text-muted-foreground"
+              : "text-foreground"
           }`}
         >
           {task.title}
@@ -145,7 +145,7 @@ const TaskRow = ({ task, onStatusChange, onTaskClick }) => {
         {formattedDueDate && (
           <div
             className={`flex items-center space-x-1.5 text-xs ${
-              isOverdue ? "text-red-400 font-medium" : "text-neutral-400"
+              isOverdue ? "text-red-400 font-medium" : "text-muted-foreground"
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
@@ -157,7 +157,7 @@ const TaskRow = ({ task, onStatusChange, onTaskClick }) => {
         {/* Assignee Avatar */}
         <div className="flex items-center space-x-1.5 min-w-[100px] justify-end">
           {task.assignedTo ? (
-            <div className="flex items-center space-x-1.5 text-xs text-neutral-300">
+            <div className="flex items-center space-x-1.5 text-xs text-foreground">
               <div className="w-6 h-6 rounded-full bg-orange-500/20 text-orange-400 font-semibold flex items-center justify-center text-[10px] border border-orange-500/30">
                 {task.assignedTo.username?.slice(0, 2).toUpperCase() || "U"}
               </div>
@@ -166,7 +166,7 @@ const TaskRow = ({ task, onStatusChange, onTaskClick }) => {
               </span>
             </div>
           ) : (
-            <div className="flex items-center space-x-1 text-xs text-neutral-500">
+            <div className="flex items-center space-x-1 text-xs text-muted-foreground">
               <User className="w-4 h-4" />
               <span className="hidden sm:inline">Unassigned</span>
             </div>

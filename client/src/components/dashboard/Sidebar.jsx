@@ -41,6 +41,10 @@ export default function Sidebar() {
         <NavLink to="/projects" className={navClass}>
           Projects
         </NavLink>
+
+        <NavLink to="/tasks" className={navClass}>
+          My Tasks
+        </NavLink>
         {selectedOrganisation && (
           <NavLink
             to="/members"

@@ -348,6 +348,9 @@ export default function DashboardLayout() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.projects(organisationId),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.organisationDetails(organisationId),
+      });
     };
 
     const handleOrganisationEvent = ({ organisationId: eventOrganisationId, organisation }) => {
@@ -364,6 +367,9 @@ export default function DashboardLayout() {
             item._id === organisationId ? { ...item, ...organisation } : item
           )
       );
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.organisationDetails(organisationId),
+      });
     };
 
     socket.on("PROJECT_CREATED", handleProjectEvent);

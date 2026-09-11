@@ -341,7 +341,8 @@ export const getMyTasks = async (req,res)=>{
     const tasks = await Task.find({
       assignedTo: req.user._id,
     })
-    .populate("project", "name");
+    .populate("project", "name")
+    .populate("organisation", "name");
 
     tasks.sort((a, b) => {
       if (!a.dueDate && !b.dueDate) return 0;

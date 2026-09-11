@@ -45,15 +45,29 @@ const TasksTab = ({ orgId, projectId, phases = [], onRefresh }) => {
   const members = membersQuery.data ?? EMPTY_LIST;
   const loading = tasksQuery.isPending;
   const error = tasksQuery.error;
-  const sortedPhases = useMemo(
-    () =>
-      [...phases].sort(
-        (a, b) =>
-          (a?.startDate ? new Date(a.startDate).getTime() : 0) -
-          (b?.startDate ? new Date(b.startDate).getTime() : 0)
-      ),
-    [phases]
-  );
+  const sortedPhases = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const getPhaseRank = (phase) => {
+      if (phase?.status?.toLowerCase() === "completed") return 2;
+
+      const startDate = phase?.startDate ? new Date(phase.startDate) : null;
+      const endDate = phase?.endDate ? new Date(phase.endDate) : null;
+      const isCurrent = startDate && startDate <= today && (!endDate || endDate >= today);
+      return isCurrent ? 0 : 1;
+    };
+
+    return [...phases].sort((a, b) => {
+      const rankDifference = getPhaseRank(a) - getPhaseRank(b);
+      if (rankDifference !== 0) return rankDifference;
+
+      return (
+        (a?.startDate ? new Date(a.startDate).getTime() : Infinity) -
+        (b?.startDate ? new Date(b.startDate).getTime() : Infinity)
+      );
+    });
+  }, [phases]);
 
   const refreshData = async () => {
     await Promise.all([tasksQuery.refetch(), membersQuery.refetch()]);
@@ -121,17 +135,21 @@ const TasksTab = ({ orgId, projectId, phases = [], onRefresh }) => {
     return { phaseGroupedTasks: phaseMap, floatingTasks: unallocated };
   }, [filteredTasks, sortedPhases]);
 
-  const sortByDueDate = (items) =>
-    [...items].sort(
-      (a, b) =>
+  const sortTasksForDisplay = (items) =>
+    [...items].sort((a, b) => {
+      const completionDifference = Number(a.status === "done") - Number(b.status === "done");
+      if (completionDifference !== 0) return completionDifference;
+
+      return (
         (a?.dueDate ? new Date(a.dueDate).getTime() : Infinity) -
         (b?.dueDate ? new Date(b.dueDate).getTime() : Infinity)
-    );
+      );
+    });
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-neutral-400">
-        <Loader2 className="w-6 h-6 animate-spin mr-2 text-orange-500" />
+      <div className="flex items-center justify-center py-16 text-muted-foreground">
+        <Loader2 className="w-6 h-6 animate-spin mr-2 text-primary" />
         <span>Loading tasks...</span>
       </div>
     );
@@ -154,25 +172,25 @@ const TasksTab = ({ orgId, projectId, phases = [], onRefresh }) => {
         onSelectFilter={setActiveKpiFilter}
       />
 
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-neutral-900/60 p-3 rounded-xl border border-neutral-800">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search task title..."
-            className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-9 pr-3 py-1.5 text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-neutral-700"
+            className="w-full rounded-lg border border-border bg-input px-3 py-1.5 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
           />
         </div>
 
         <div className="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-end">
           <div className="flex items-center space-x-2">
-            <Filter className="w-4 h-4 text-neutral-500" />
+            <Filter className="w-4 h-4 text-muted-foreground" />
             <select
               value={priorityFilter}
               onChange={(event) => setPriorityFilter(event.target.value)}
-              className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-sm rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-neutral-700"
+              className="rounded-lg border border-border bg-input px-2.5 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
             >
               <option value="all">All Priorities</option>
               <option value="high">High</option>
@@ -185,7 +203,7 @@ const TasksTab = ({ orgId, projectId, phases = [], onRefresh }) => {
               setSelectedPhaseId(null);
               setIsCreateModalOpen(true);
             }}
-            className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors shadow-lg shadow-orange-500/20"
+            className="flex items-center space-x-1.5 rounded-lg bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
             <Plus className="w-4 h-4" />
             <span>New Task</span>
@@ -198,7 +216,7 @@ const TasksTab = ({ orgId, projectId, phases = [], onRefresh }) => {
           <PhaseAccordion
             key={phase._id}
             phase={phase}
-            tasks={sortByDueDate(phaseGroupedTasks[phase._id] || [])}
+            tasks={sortTasksForDisplay(phaseGroupedTasks[phase._id] || [])}
             onStatusChange={handleStatusChange}
             onTaskClick={(task) => {
               setSelectedTask(task);
@@ -214,7 +232,7 @@ const TasksTab = ({ orgId, projectId, phases = [], onRefresh }) => {
           <PhaseAccordion
             key="unscheduled-floating"
             phase={null}
-            tasks={sortByDueDate(floatingTasks)}
+            tasks={sortTasksForDisplay(floatingTasks)}
             onStatusChange={handleStatusChange}
             onTaskClick={(task) => {
               setSelectedTask(task);

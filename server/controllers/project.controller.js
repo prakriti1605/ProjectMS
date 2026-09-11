@@ -136,6 +136,12 @@ export const createPhase = async (req, res) => {
     project.phases.push(newPhase);
     await project.save();
 
+    emitOrganisationEvent({
+      organisationId: project.organisation,
+      event: "PROJECT_UPDATED",
+      payload: { project },
+    });
+
     return res.status(201).json({
       message: "Phase created successfully",
       phases: project.phases,
@@ -174,6 +180,12 @@ export const updatePhase = async (req, res) => {
 
     await project.save();
 
+    emitOrganisationEvent({
+      organisationId: project.organisation,
+      event: "PROJECT_UPDATED",
+      payload: { project },
+    });
+
     return res.status(200).json({
       message: "Phase updated successfully",
       phases: project.phases,
@@ -198,6 +210,12 @@ export const deletePhase = async (req, res) => {
 
     project.phases = project.phases.filter((p) => p._id.toString() !== phaseId);
     await project.save();
+
+    emitOrganisationEvent({
+      organisationId: project.organisation,
+      event: "PROJECT_UPDATED",
+      payload: { project },
+    });
 
     return res.status(200).json({
       message: "Phase deleted successfully",

@@ -95,15 +95,15 @@ const CreateTaskModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-2xl animate-in fade-in zoom-in duration-200">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 bg-neutral-900/50">
-          <h3 className="text-lg font-semibold text-white">Create New Task</h3>
+        <div className="flex items-center justify-between border-b border-border bg-secondary/50 px-6 py-4">
+          <h3 className="text-lg font-semibold text-foreground">Create New Task</h3>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-neutral-800"
+            className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -119,7 +119,7 @@ const CreateTaskModal = ({
 
           {/* Title */}
           <div>
-            <label className="block text-xs font-medium text-neutral-400 mb-1">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Task Title <span className="text-red-400">*</span>
             </label>
             <input
@@ -128,14 +128,14 @@ const CreateTaskModal = ({
               value={formData.title}
               onChange={handleChange}
               placeholder="e.g. Design Landing Page Wireframes"
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3.5 py-2 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-orange-500 transition-colors"
+            className="w-full rounded-lg border border-border bg-input px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring/30"
               autoFocus
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-medium text-neutral-400 mb-1">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Description
             </label>
             <textarea
@@ -144,7 +144,7 @@ const CreateTaskModal = ({
               value={formData.description}
               onChange={handleChange}
               placeholder="Add additional context or requirements..."
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3.5 py-2 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-orange-500 transition-colors resize-none"
+            className="w-full resize-none rounded-lg border border-border bg-input px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring/30"
             />
           </div>
 
@@ -152,15 +152,15 @@ const CreateTaskModal = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Phase Selector */}
             <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-neutral-500" />
+              <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Layers className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Phase</span>
               </label>
               <select
                 name="phase"
                 value={formData.phase}
                 onChange={handleChange}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-orange-500 capitalize"
+                className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground capitalize focus:outline-none focus:ring-2 focus:ring-ring/30"
               >
                 <option value="">Unscheduled / Floating</option>
                 {phases.map((phase) => (
@@ -173,15 +173,15 @@ const CreateTaskModal = ({
 
             {/* Assignee Selector */}
             <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1 flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-neutral-500" />
+              <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <User className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Assignee</span>
               </label>
               <select
                 name="assignedTo"
                 value={formData.assignedTo}
                 onChange={handleChange}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-orange-500"
+                className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
               >
                 <option value="">Unassigned</option>
                 {members.map((member) => (
@@ -197,15 +197,15 @@ const CreateTaskModal = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Priority Selector */}
             <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1 flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-neutral-500" />
+              <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Priority</span>
               </label>
               <select
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-orange-500 capitalize"
+                className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground capitalize focus:outline-none focus:ring-2 focus:ring-ring/30"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -215,8 +215,8 @@ const CreateTaskModal = ({
 
             {/* Due Date */}
             <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-neutral-500" />
+              <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Due Date</span>
               </label>
               <input
@@ -224,25 +224,25 @@ const CreateTaskModal = ({
                 name="dueDate"
                 value={formData.dueDate}
                 onChange={handleChange}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-orange-500"
+                className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
               />
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-neutral-800 mt-6">
+          <div className="mt-6 flex items-center justify-end space-x-3 border-t border-border pt-4">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-neutral-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center space-x-2 px-5 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition-colors disabled:opacity-50 shadow-lg shadow-orange-500/20"
+              className="flex items-center space-x-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>Create Task</span>

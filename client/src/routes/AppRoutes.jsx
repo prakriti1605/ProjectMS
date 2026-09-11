@@ -14,6 +14,7 @@ import Members from "../pages/Members";
 import JoinOrg from "../components/JoinOrg";
 import CreateOrganisation from "../pages/CreateOrganisation";
 import OrganisationSettings from "../pages/OrganisationSettings";
+import MyTasks from "../pages/MyTasks";
 
 export default function AppRoutes() {
   return (
@@ -30,6 +31,7 @@ export default function AppRoutes() {
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/tasks" element={<MyTasks />} />
             <Route path="/organisations" element={<Organisations />} />
             <Route path="/org/:id" element={<OrganisationDetails />} />
             <Route

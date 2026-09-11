@@ -34,7 +34,7 @@ const TasksTriageBar = ({ kpiMetrics, activeFilter, onSelectFilter }) => {
         className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
           activeFilter === "overdue"
             ? "bg-red-500/10 border-red-500/50 shadow-lg shadow-red-500/10"
-            : "bg-neutral-900/60 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900"
+            : "bg-card border-border hover:bg-secondary"
         }`}
       >
         <div className="flex items-center space-x-3">
@@ -42,11 +42,11 @@ const TasksTriageBar = ({ kpiMetrics, activeFilter, onSelectFilter }) => {
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs font-medium text-neutral-400">Overdue / At Risk</p>
-            <h4 className="text-xl font-bold text-neutral-100">{overdueCount} Tasks</h4>
+            <p className="text-xs font-medium text-muted-foreground">Overdue / At Risk</p>
+            <h4 className="text-xl font-bold text-foreground">{overdueCount} Tasks</h4>
           </div>
         </div>
-        <ArrowRight className={`w-4 h-4 transition-transform ${activeFilter === "overdue" ? "text-red-400 translate-x-1" : "text-neutral-500"}`} />
+        <ArrowRight className={`w-4 h-4 transition-transform ${activeFilter === "overdue" ? "text-red-400 translate-x-1" : "text-muted-foreground"}`} />
       </div>
 
       {/* 2. Needs Approval Card */}
@@ -55,7 +55,7 @@ const TasksTriageBar = ({ kpiMetrics, activeFilter, onSelectFilter }) => {
         className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
           activeFilter === "needs_approval"
             ? "bg-amber-500/10 border-amber-500/50 shadow-lg shadow-amber-500/10"
-            : "bg-neutral-900/60 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900"
+            : "bg-card border-border hover:bg-secondary"
         }`}
       >
         <div className="flex items-center space-x-3">
@@ -63,11 +63,11 @@ const TasksTriageBar = ({ kpiMetrics, activeFilter, onSelectFilter }) => {
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs font-medium text-neutral-400">Needs Approval</p>
-            <h4 className="text-xl font-bold text-neutral-100">{needsApprovalCount} Task{needsApprovalCount !== 1 ? "s" : ""}</h4>
+            <p className="text-xs font-medium text-muted-foreground">Needs Approval</p>
+            <h4 className="text-xl font-bold text-foreground">{needsApprovalCount} Task{needsApprovalCount !== 1 ? "s" : ""}</h4>
           </div>
         </div>
-        <ArrowRight className={`w-4 h-4 transition-transform ${activeFilter === "needs_approval" ? "text-amber-400 translate-x-1" : "text-neutral-500"}`} />
+        <ArrowRight className={`w-4 h-4 transition-transform ${activeFilter === "needs_approval" ? "text-amber-400 translate-x-1" : "text-muted-foreground"}`} />
       </div>
 
       {/* 3. Unassigned Queue Card */}
@@ -76,7 +76,7 @@ const TasksTriageBar = ({ kpiMetrics, activeFilter, onSelectFilter }) => {
         className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
           activeFilter === "unassigned"
             ? "bg-blue-500/10 border-blue-500/50 shadow-lg shadow-blue-500/10"
-            : "bg-neutral-900/60 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900"
+            : "bg-card border-border hover:bg-secondary"
         }`}
       >
         <div className="flex items-center space-x-3">
@@ -84,11 +84,11 @@ const TasksTriageBar = ({ kpiMetrics, activeFilter, onSelectFilter }) => {
             <Inbox className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs font-medium text-neutral-400">Unassigned Queue</p>
-            <h4 className="text-xl font-bold text-neutral-100">{unassignedCount} Tasks</h4>
+            <p className="text-xs font-medium text-muted-foreground">Unassigned Queue</p>
+            <h4 className="text-xl font-bold text-foreground">{unassignedCount} Tasks</h4>
           </div>
         </div>
-        <ArrowRight className={`w-4 h-4 transition-transform ${activeFilter === "unassigned" ? "text-blue-400 translate-x-1" : "text-neutral-500"}`} />
+        <ArrowRight className={`w-4 h-4 transition-transform ${activeFilter === "unassigned" ? "text-blue-400 translate-x-1" : "text-muted-foreground"}`} />
       </div>
     </div>
   );

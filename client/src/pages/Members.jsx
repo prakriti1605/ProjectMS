@@ -1,17 +1,28 @@
 // src/pages/Members.jsx
 import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useOrganisation } from "../context/OrganisationContext";
 import { useAuth } from "../context/AuthContext";
 import { orgApi } from "../api/org.api";
+import { queryKeys } from "../api/queryKeys";
+
+const loadMembers = async (organisationId) => {
+  const response = await orgApi.getMembers(organisationId);
+  return response.data.members || [];
+};
 
 export default function Members() {
   // 1. Extract orgLoading from OrganisationContext
   const { selectedOrganisation, loading: orgLoading } = useOrganisation();
   const { hasPermission, activeMembership, loading: authLoading } = useAuth(); // 1. Auth loading status
+  const queryClient = useQueryClient();
  
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const membersQuery = useQuery({
+    queryKey: queryKeys.members(selectedOrganisation?._id),
+    queryFn: () => loadMembers(selectedOrganisation._id),
+    enabled: Boolean(selectedOrganisation?._id && !authLoading),
+    staleTime: 45_000,
+  });
 
   // Join Code States
   const [joinCode, setJoinCode] = useState("");
@@ -27,32 +38,18 @@ export default function Members() {
     }
   }, [selectedOrganisation]);
 
-  const fetchMembers = async () => {
-    // DO NOT run API call if selectedOrganisation isn't ready yet
-    if (!selectedOrganisation?._id || authLoading) return;
+  const members = membersQuery.data || [];
+  const loading = membersQuery.isPending;
+  const error = membersQuery.isError
+    ? membersQuery.error?.response?.status === 403
+      ? "You do not have active access to view members of this organisation."
+      : membersQuery.error?.response?.data?.message || "Failed to load members"
+    : "";
 
-    try {
-      setLoading(true);
-      setError("");
-      const res = await orgApi.getMembers(selectedOrganisation._id);
-      setMembers(res.data.members || []);
-    } catch (err) {
-      console.error("Fetch members error:", err);
-      if (err.response?.status === 403) {
-        setError("You do not have active access to view members of this organisation.");
-      } else {
-        setError(err.response?.data?.message || "Failed to load members");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!authLoading && selectedOrganisation?._id) {
-      fetchMembers();
-    }
-  }, [authLoading , selectedOrganisation?._id]);
+  const refreshMembers = () =>
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.members(selectedOrganisation?._id),
+    });
 
   const handleGenerateCode = async () => {
     try {
@@ -77,7 +74,7 @@ export default function Members() {
   const handleRoleChange = async (userId, newRole) => {
     try {
       await orgApi.updateMemberRole(selectedOrganisation._id, userId, newRole);
-      fetchMembers();
+      await refreshMembers();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to update role");
     }
@@ -87,7 +84,7 @@ export default function Members() {
     if (!window.confirm("Are you sure you want to remove this member?")) return;
     try {
       await orgApi.removeMember(selectedOrganisation._id, userId);
-      fetchMembers();
+      await refreshMembers();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to remove member");
     }

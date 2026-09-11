@@ -1,6 +1,7 @@
 export const queryKeys = {
   organisations: (userId) => ["organisations", userId],
   organisation: (organisationId) => ["organisation", organisationId],
+  organisationDetails: (organisationId) => ["organisation-details", organisationId],
   members: (organisationId) => ["organisation-members", organisationId],
   projects: (organisationId) => ["projects", organisationId],
   project: (organisationId, projectId) => ["project", organisationId, projectId],
