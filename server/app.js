@@ -4,7 +4,7 @@ import cors from "cors";
 
 const app = express();
 const allowedOrigins = [
-  "https://project-mgmnt-eta.vercel.app", // Deployed frontend
+  "https://project-ms-frontend.vercel.app/", // Deployed frontend
   "http://localhost:5173",                 // Local Vite frontend
   "http://127.0.0.1:5173",                 // Local Vite frontend via IPv4 loopback
   "http://localhost:3000",                 // Fallback dev port
