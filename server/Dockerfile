@@ -1,5 +1,5 @@
 # 1. Use an official, lightweight Node 18 runtime as base
-FROM node:18-alpine
+FROM node:22-alpine
 
 # 2. Set the working directory inside the container
 WORKDIR /app
