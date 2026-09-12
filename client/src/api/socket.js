@@ -2,7 +2,7 @@ import { io } from "socket.io-client";
 
 const SOCKET_URL = import.meta.env.DEV
   ? "http://127.0.0.1:8002"
-  : "https://project-mgmnt-eu2f.onrender.com";
+  : "https://projectms-backend.onrender.com";
 
 console.log("🚀 SOCKET CLIENT INITIALIZING");
 console.log("🌐 SOCKET URL:", SOCKET_URL);
